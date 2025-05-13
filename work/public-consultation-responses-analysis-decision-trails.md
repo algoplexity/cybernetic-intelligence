@@ -28,4 +28,6 @@
         -	is licensed under a license that is at least as permissive as CC BY 4.0 NC SA (essentially, it must be permissive of non-commercial usage but it can be share alike/copyleft since we will not be finetuning it); and
         -	is the product of a reputable organisation or academic.
     -	28th Mar – Submit Create_Response_Centric_UDS.txt containing extracted text/radiobutton/checkbox/PDF from response 838011019 as an example
-    -	28th Mar - 
+    -	28th Mar – Explain where time is taken to process text/selection/PDF per responses and then all responses per question
+    -	28th Mar – Weekly Report on merging text/selection/PDF per response, segment the merged text to match question and tested using response ID=838011019
+    -	4th Apr – Weekly Report on
