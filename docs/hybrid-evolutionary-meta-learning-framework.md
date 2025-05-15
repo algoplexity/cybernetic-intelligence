@@ -131,9 +131,13 @@ We propose a threefold enhancement:
 
 ## 7. Conclusion
 
-This proposal introduces a powerful hybrid architecture that augments evolutionary program synthesis with learning and meta-learning layers. By simulating backpropagation via internal state and enabling the system to adapt its own generative policy, this approach has the potential to outperform current evolution-only or LLM-only baselines in terms of speed, quality, and generality.
+This proposal advances a novel hybrid framework that integrates evolutionary search, large language models, and meta-learning into a unified system for algorithm synthesis. By simulating credit assignment through internal state modeling and enabling meta-level adaptation of the generative strategy, the architecture overcomes critical inefficiencies in traditional evolutionary methods. It thus presents a significant step toward more sample-efficient, generalizable, and adaptive program synthesis engines.
 
-It also proposes a new synergy between LLMs and cellular automata: LLMs not only generate and mutate symbolic algorithm candidates but also guide the evolution of CA rules, while CA-like dynamics offer interpretable, local-update models for LLM internal states. This positions the framework as a candidate architecture for emergent, cybernetic computation systems.
+The design also explores a deeper computational synergy between symbolic and sub-symbolic substrates. Specifically, it introduces a dual substrate architecture in which large language models not only generate and mutate candidate programs, but also guide the evolution of cellular automata (CA) rules. In turn, CA structures provide an interpretable, decentralized mechanism for tracking and updating internal system states, simulating a form of credit assignment in non-differentiable search spaces. This feedback loop between symbolic reasoning and distributed rule-based dynamics embodies the principles of cybernetic computation.
+
+Beyond outperforming LLM-only or evolution-only approaches, this architecture serves as a proof-of-concept for open-ended, self-improving systems that evolve their own generative logic. Its capacity for meta-evolution, internal memory, and cross-domain generalization marks a step toward viable systems for machine-driven discovery — systems capable of adapting not only their outputs, but the very mechanisms by which they generate and refine knowledge.
+
+As such, this hybrid evolutionary-meta-learning framework is positioned not merely as a technical enhancement of AlphaEvolve, but as a forward-looking foundation for next-generation AI systems that are both efficient in task-specific synthesis and capable of emergent, autonomous improvement.
 
 ---
 
