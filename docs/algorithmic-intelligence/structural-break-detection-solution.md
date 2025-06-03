@@ -1,3 +1,58 @@
+**Fully Revised Solution Proposal (with Sakabe et al. insights integrated)**
+
+**Project Goal:** To develop an adaptive, algorithmically-principled system for detecting and characterizing structural breaks in univariate time series for the ADIA Lab Challenge, grounded in Algorithmic Information Theory.
+
+**Core Components & Workflow:**
+
+1.  **Offline Preparation (`train()` function):**
+    *   **Optimal Binary Encoding Scheme Discovery:**
+        *   Evaluate candidate initial binarization schemes (e.g., S1D, Binarized PE). For each scheme:
+            *   Apply it to `X_train` segments.
+            *   Apply MILS to the resulting `B_raw_pre` and `B_raw_post`.
+            *   Use a pre-trained `ECA_Dynamics_Transformer` to assess the "ECA-ness fit change" of these `B_mils` segments across known breaks/non-breaks in `y_train`.
+        *   Select the encoding scheme + parameters yielding the highest ROC AUC based on this Transformer assessment. Save this choice.
+    *   **`ECA_Dynamics_Transformer` Training:** (Burtsev-style). Save model.
+    *   **Save Configurations:** GA parameters (for ECA search & MILS), MILS parameters, adaptive Tier-1 settings, prompts for LLM-guided evolution (if using AlphaEvolve principles).
+
+2.  **Online Inference (`infer()` function - per test `dataset`):**
+    *   **A. Adaptive Tier-1 Check (Efficiency):** (As before).
+    *   **B. Tier-2 Full Analysis:**
+        1.  **Encoding & MILS:**
+            *   Apply the **chosen optimal binary encoding** to `dataset` to get `B_raw_pre`, `B_raw_post`, `B_raw_full`.
+            *   Apply MILS to each: `B_mils_pre`, `B_mils_post`, `B_mils_full`. This step is critical for preparing a representation that emphasizes core algorithmic structure and reduces noise before BDM analysis, aligning with findings that learning involves algorithmic compression [**Sakabe et al., 2025**].
+        2.  **ECA Rule Discovery (GA, potentially LLM-guided [Novikov et al., "AlphaEvolve", 2025]):**
+            *   Find `Rule_A` for `B_mils_pre`, `Rule_B` for `B_mils_post`, `Rule_Global` for `B_mils_full`.
+            *   *GA Fitness:* Minimize `BDM_distance(B_mils_segment, MILS_Pattern(simulate_eca(Candidate_Rule)))`. (MILS is applied to the raw ECA output before BDM distance).
+        3.  **BDM-MDL Score Calculation:**
+            *   Simulate `Rule_A, Rule_B, Rule_Global` to get `Pattern_A_raw`, `Pattern_B_raw`, `Pattern_Global_raw`.
+            *   Apply MILS: `MILS_Pattern_A`, `MILS_Pattern_B`, `MILS_Pattern_Global`.
+            *   Calculate `L_A = BDM_cost(B_mils_pre, MILS_Pattern_A)` (e.g., BDM of XOR difference). Similarly for `L_B`, `L_G`.
+            *   BDM is chosen here for its demonstrated ability to better capture algorithmic regularities and structural changes in binarized data compared to entropy [**Sakabe et al., 2025**].
+            *   `MDL_Raw_Score = L_G - (L_A + L_B)`.
+        4.  **Transformer Fidelity Augmentation:** (As before).
+        5.  **Normalization & Output:** (As before).
+
+3.  **Post-Challenge Analysis (for Paper):**
+    *   Apply Causal Decomposition to `Rule_A` and `Rule_B`.
+
+**Key Definitions for Implementation:** (Largely the same, but the rationale for BDM is now stronger)
+
+*   **`BDM_cost(...)`:** Emphasize that BDM is used due to its sensitivity to algorithmic structure beyond mere statistical variability [**Sakabe et al., 2025**].
+
+**References (Illustrative - ensure full and correct formatting, adding Sakabe et al.):**
+
+*   Burtsev, M. (2024). Learning Elementary Cellular Automata with Transformers. *arXiv preprint arXiv:2412.01417v1*.
+*   Fang, G., Ma, X., & Wang, X. (2025). Thinkless: LLM Learns When to Think. *arXiv preprint arXiv:2505.13379v1*.
+*   Grünwald, P., & Roos, T. (2019). Minimum Description Length Revisited. *arXiv preprint arXiv:1908.08484v2*.
+*   Kiani, N. A., et al. (2023). Minimal Algorithmic Information Loss Methods... *Entropy*, 25(4), 699.
+*   Mak, Y.W. (Year). *Discovering Hidden Structures in Stock Market Data using Algorithmic Generative Modeling*. \[University, Degree].
+*   Novikov, A., et al. (2025). AlphaEvolve: A coding agent for scientific and algorithmic discovery. *Google DeepMind White Paper*.
+*   Riedel, J., & Zenil, H. (2018). Rule Primality, ... Causal Decomposition in ECAs. *arXiv:1802.08769*.
+*   **Sakabe, E.Y., Abrahão, F.S., Simões, A., Colombini, E., Costa, P., Gudwin, R., & Zenil, H. (2025). Evaluating Training in Binarized Neural Networks Through the Lens of Algorithmic Information Theory. *arXiv preprint arXiv:2505.20646v1*. (To be updated if published at ICLR 2025)**.
+*   *(Other references as before)*
+
+---
+
 **Solution Proposal: Adaptive, Algorithmically-Principled Structural Break Detection using an ECA-MILS-BDM-Transformer Framework**
 
 **Version:** 1.0
