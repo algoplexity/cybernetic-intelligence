@@ -1,3 +1,45 @@
+**Updated Hypothesis: Algorithmic Causality in Structural Break Detection**
+
+We hypothesize that structural breaks in financial time series correspond to transitions between distinct algorithmic regimes, each governed by a minimal and interpretable generative process. These regimes can be effectively modeled as Elementary Cellular Automata (ECA), with each segment of the time series interpreted as the output of an underlying ECA rule applied to a suitably encoded initial state.
+
+Inspired by the work of Sakabe et al. (2025), who show that training in Binarized Neural Networks (BNNs) can be better understood through the lens of algorithmic information theory than via conventional entropy measures, we posit that structural breaks are best detected not by changes in statistical properties alone, but by discontinuities in algorithmic compressibility. Specifically, we adopt the Block Decomposition Method (BDM) as a robust and interpretable complexity metric to track such discontinuities.
+
+Each regime in a financial time series is assumed to reflect a metastable attractor in the space of ECA rules. Structural breaks then correspond to changes in the MDL-optimal rule and initial configuration required to model observed dynamics. The time series, when binarized appropriately, is treated as a 2D ECA spacetime diagram, and inference involves discovering the rule and seed that minimize total description length.
+
+**Updated Solution Proposal: ECA-MDL Structural Break Framework**
+
+To operationalize this hypothesis, we propose a four-part solution:
+
+1. **Preprocessing and Encoding**:
+
+   * Transform the univariate time series into a binary representation using domain-specific binarization strategies (e.g., price momentum, volatility flags, symbolic dynamics).
+   * Assemble binary representations into 2D arrays, interpreted as candidate ECA spacetime diagrams.
+
+2. **Rule Inference and Complexity Estimation**:
+
+   * For each segment of the 2D binary array, search the ECA rule space to find the rule and seed that can reconstruct the observed pattern.
+   * Use BDM (via the `pybdm` library) to estimate the algorithmic complexity of each reconstruction and associated residual.
+
+3. **Structural Break Detection via MDL**:
+
+   * Apply an MDL principle to segment the time series such that the total description length (rule + seed + residual) is minimized.
+   * Structural breaks are identified at segment boundaries where the MDL-optimal rule changes or complexity rises sharply.
+
+4. **Interpretability and Validation**:
+
+   * Validate discovered rules through backtesting on out-of-sample data.
+   * Compare the inferred causal regimes to known economic events or regime shifts.
+   * Benchmark against entropy-based segmentation and statistical change point detection methods.
+
+This framework treats market behavior as an emergent computation governed by simple, local rules. By inverting this emergent process through algorithmic inference, we aim to detect causal changes in market structure that are not evident through conventional analysis. The integration of Sakabe et al.'s findings further strengthens our commitment to algorithmic information theory as the most appropriate lens for understanding structure, change, and compressibility in complex time series.
+
+**References:**
+
+* Sakabe, K., Montero, P., & Zenil, H. (2025). Evaluating Training in Binarized Neural Networks Through the Lens of Algorithmic Information Theory. arXiv:2505.20646.
+* Zenil, H., Soler-Toscano, F., Delahaye, J.P., & Gauvrit, N. (2018). A Decomposition Method for Global Evaluation of Shannon Entropy and Local Estimations of Algorithmic Complexity. Entropy, 20(8), 605.
+* Wolfram, S. (2002). A New Kind of Science. Wolfram Media.
+
+
 **Fully Revised Solution Proposal (with Sakabe et al. insights integrated)**
 
 **Project Goal:** To develop an adaptive, algorithmically-principled system for detecting and characterizing structural breaks in univariate time series for the ADIA Lab Challenge, grounded in Algorithmic Information Theory.
