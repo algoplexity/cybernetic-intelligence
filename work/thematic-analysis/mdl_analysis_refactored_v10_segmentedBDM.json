@@ -1,0 +1,282 @@
+[
+  {
+    "qid": "Q4",
+    "corpus_len_chars": 129501,
+    "num_responses": 209,
+    "baseline_mdl": 7922.074360843286,
+    "final_refined_motifs": [
+      {
+        "label": "[DATA_SECURITY_POLICY]",
+        "description": "The text highlights a concern regarding the potential erosion of privacy rights due to the widespread availability of property data.",
+        "surface_forms": [
+          "australian privacy principles",
+          "australian privacy principles 12 and 13",
+          "competing public interests",
+          "compliance",
+          "data breach",
+          "data protection",
+          "data security",
+          "employee information",
+          "employee records exemption",
+          "international regulations",
+          "journalism",
+          "law enforcement",
+          "legal framework",
+          "personal information",
+          "privacy act",
+          "privacy breaches",
+          "privacy principles",
+          "privacy regulations",
+          "privacy rights",
+          "proposed individual rights",
+          "specific exceptions",
+          "targeted approach",
+          "transparency"
+        ]
+      },
+      {
+        "label": "[EXCEPTIONS_TO_INDIVIDUAL_RIGHTS]",
+        "description": "The text discusses exceptions to individual rights in the employment context, focusing on free expression and law enforcement.",
+        "surface_forms": [
+          "balancing individual rights",
+          "biometric information",
+          "commercial exploitation",
+          "competing public interests",
+          "consent",
+          "contracts",
+          "data practices",
+          "democratic freedoms",
+          "employee rights",
+          "employment data",
+          "exceptions",
+          "exceptions to individual rights",
+          "freedom of expression",
+          "harmonized approach to privacy laws",
+          "inferred data",
+          "law enforcement",
+          "legal obligations",
+          "legitimate interests",
+          "limitations on privacy rights",
+          "privacy controls",
+          "privacy framework",
+          "privacy law",
+          "privacy rights",
+          "public interest",
+          "right to object",
+          "sensitive data",
+          "specific exceptions to individual rights",
+          "targeted marketing",
+          "transparency"
+        ]
+      },
+      {
+        "label": "[COMPREHENSIVE_LEGAL_FRAMEWORK]",
+        "description": "The text emphasizes the need for a comprehensive federal human rights framework in Australia, similar to the European Convention on Human Rights.",
+        "surface_forms": [
+          "australian privacy principles",
+          "gdpr",
+          "human rights framework"
+        ]
+      },
+      {
+        "label": "[CURRENT_SMALL_BUSINESS_EXEMPTION]",
+        "description": "Significant loophole in privacy compliance for organizations with high security risks",
+        "surface_forms": [
+          "compliance burden"
+        ]
+      },
+      {
+        "label": "[BALANCING_INITIATIVES_WITH_THE]",
+        "description": "The MSIA's support for efforts to harmonize Australian privacy legislation is crucial for achieving a truly effective and consistent privacy framework across Australia.",
+        "surface_forms": [
+          "innovation",
+          "transparency"
+        ]
+      },
+      {
+        "label": "[CONCERNS_ABOUT_MISUSE_OF]",
+        "description": "The excerpt highlights concerns about the misuse of personal data, specifically targeting young people with profiles related to harmful products.",
+        "surface_forms": [
+          "harmful products",
+          "personal data"
+        ]
+      },
+      {
+        "label": "[BALANCING_CHILDRENS_RIGHTS_AND]",
+        "description": "The text emphasizes the importance of balancing children’s rights with other considerations like privacy and freedom of expression, particularly when parental consent is involved.",
+        "surface_forms": [
+          "privacy rights"
+        ]
+      },
+      {
+        "label": "[AUSTRALIAN_PRIVACY_PRINCIPLES]",
+        "description": "The text argues for removing an exemption in Australian Privacy Principles 12 and 13 that allows employers to collect and disclose employee information without consent.",
+        "surface_forms": [
+          "australian privacy principles 12 and 13"
+        ]
+      },
+      {
+        "label": "[EXCEPTIONS_TO_PRIVACY_RIGHTS]",
+        "description": "The text discusses exceptions to individual rights in the employment context, focusing on exemptions for emergency situations and the best interests duty.",
+        "surface_forms": [
+          "balance",
+          "limitations"
+        ]
+      },
+      {
+        "label": "[OUTDATED_LEGAL_FRAMEWORK]",
+        "description": "The text suggests a need to strengthen existing privacy protections for employees, recognizing the significant increase in employer data collection.",
+        "surface_forms": [
+          "legal framework"
+        ]
+      },
+      {
+        "label": "[CAREFUL_CONSIDERATION_OF_ENHANCED]",
+        "description": "The excerpt emphasizes the importance of carefully considering the impact on individuals' rights when processing their data.",
+        "surface_forms": [
+          "consent",
+          "employee rights"
+        ]
+      },
+      {
+        "label": "[PROTECTION_OF_PUBLIC_INTEREST]",
+        "description": "The text emphasizes the importance of preserving the existing journalism exemption to protect public interest reporting and avoid hindering legitimate scrutiny.",
+        "surface_forms": [
+          "journalism exemption",
+          "public interest"
+        ]
+      },
+      {
+        "label": "[EXPANDING_INDIVIDUAL_PRIVACY_RIGHTS]",
+        "description": "The proposed reforms aim to expand individual privacy rights, including access, objection, erasure, correction, and de-indexing search results.",
+        "surface_forms": [
+          "access",
+          "correct",
+          "de-index",
+          "erase",
+          "object"
+        ]
+      },
+      {
+        "label": "[PRIVACY_IN_EMPLOYMENT]",
+        "description": "The text emphasizes the fundamental importance of privacy for democratic freedoms like free speech and holding power accountable. It proposes expanding individual rights to access, object to, erase, correct, and de-index search results. However, the excerpt itself doesn’t detail any specific exceptions to these rights within the employment context; it primarily focuses on the broader value of privacy itself.",
+        "surface_forms": [
+          "democratic freedoms",
+          "free speech",
+          "search results"
+        ]
+      },
+      {
+        "label": "[CONCERNS_ABOUT_VAGUENESS_AND]",
+        "description": "ARTK argues that introducing a general privacy tort would be problematic due to concerns about vagueness and potential limitations on freedom of expression.",
+        "surface_forms": [
+          "freedom of expression"
+        ]
+      },
+      {
+        "label": "[LEGAL_NEXUS]",
+        "description": "The excerpt emphasizes the importance of a legal nexus between the entity handling data and the individual's rights to determine data management responsibility.",
+        "surface_forms": [
+          "legal obligation"
+        ]
+      },
+      {
+        "label": "[EXCEPTIONS_TO_EXPANDED_PRIVACY]",
+        "description": "The excerpt explores exceptions to expanded privacy rights, focusing on the application of exceptions to individual rights in the employment context, specifically in the context of employment agreements and confidential information.",
+        "surface_forms": [
+          "competing public interest"
+        ]
+      },
+      {
+        "label": "[PRIVACY_IN_THE_EMPLOYMENT]",
+        "description": "The text emphasizes the fundamental importance of privacy for democratic freedoms and other rights, but it doesn't explicitly detail any specific exceptions to these rights within the employment context.",
+        "surface_forms": [
+          "access",
+          "correct",
+          "de-index",
+          "erase",
+          "individual rights",
+          "object"
+        ]
+      },
+      {
+        "label": "[EXCEPTIONS_TO_RIGHTS_IN]",
+        "description": "The excerpt argues against excluding the right to privacy entirely within the scope of legislation, highlighting the need for careful consideration of costs and benefits before widespread implementation.",
+        "surface_forms": [
+          "financial abuse"
+        ]
+      },
+      {
+        "label": "[EXCEPTIONS_TO_THE_RIGHT]",
+        "description": "The right to object is not a panacea for privacy concerns and should be carefully considered in the context of employment law.",
+        "surface_forms": [
+          "practicality"
+        ]
+      },
+      {
+        "label": "[INTERNATIONAL_DATA_TRANSFER_STANDARDS]",
+        "description": "The legislation aims to clarify international data transfer standards through mechanisms like prescribed countries and certification schemes",
+        "surface_forms": [
+          "certification schemes"
+        ]
+      },
+      {
+        "label": "[PRIVACY_RIGHTS]",
+        "description": "The excerpt emphasizes the importance of privacy rights for broader freedoms like speech and assembly.",
+        "surface_forms": [
+          "compliance",
+          "democratic freedoms",
+          "employment context",
+          "freedoms",
+          "individual rights",
+          "privacy rights",
+          "rights"
+        ]
+      },
+      {
+        "label": "[METADATA_AND_EMPLOYMENT_DATA]",
+        "description": "The excerpt provides a foundational consideration for privacy reform but doesn’t offer guidance on exceptions to rights concerning employment data.",
+        "surface_forms": [
+          "employment data",
+          "metadata",
+          "privacy reform",
+          "rights"
+        ]
+      },
+      {
+        "label": "[EXCEPTIONS_BASED_ON_COMPETING]",
+        "description": "The text proposes introducing exceptions to individual rights based on competing public interests, requiring careful consideration and justification.",
+        "surface_forms": [
+          "freedom of expression",
+          "law enforcement"
+        ]
+      },
+      {
+        "label": "[EXCEPTIONS_TO_RIGHTS_FOR]",
+        "description": "The text supports removing existing exemptions related to small businesses, employee records, political parties, and journalism concerning individual privacy rights.",
+        "surface_forms": [
+          "employee records",
+          "journalism",
+          "political parties",
+          "small businesses"
+        ]
+      },
+      {
+        "label": "[BALANCING_PRIVACY_AND_PUBLIC]",
+        "description": "The text emphasizes the need to balance privacy protection with competing public or private interests.",
+        "surface_forms": [
+          "privacy protection",
+          "private sector",
+          "public interest"
+        ]
+      }
+    ],
+    "l_h_final_motifs": 84.1,
+    "l_d_h_final_motifs": 9151.1373524167,
+    "total_mdl_with_final_motifs": 9235.2373524167,
+    "compression_achieved": -1313.1629915734138,
+    "num_raw_motifs_extracted": 109,
+    "num_consolidated_motifs": 53,
+    "num_globally_refined_motifs": 26
+  }
+]

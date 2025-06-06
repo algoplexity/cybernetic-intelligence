@@ -1,0 +1,100 @@
+LLM Log - Fri Jun  6 01:12:46 2025
+Version: Refactored MWP v10 (Segmented BDM, Simpler Prompt, Label Fix, L(H) SF Cost Zero, SF Len Filter)
+Model: google/gemma-2b-it
+---
+
+--- QID: Q4 --- CHUNK: 29 --- JSON_PARSE_VALUE_ERROR ---
+PROMPT USER CONTENT (approx first 500 chars):
+You are a highly precise assistant for thematic analysis. Your task is to extract key recurring themes from the provided text.
+
+STRICT OUTPUT REQUIREMENTS:
+1.  Your entire response MUST be a single, valid JSON list.
+2.  Each element in the list MUST be a JSON object.
+3.  Each JSON object MUST contain exactly three keys: "label", "description", and "surface_forms".
+4.  The value for "label" MUST be a string, IN ALL_CAPITAL_SNAKE_CASE, AND enclosed in square brackets. Example of a correct label: "...
+RAW LLM RESPONSE (Error: JSONDecodeError - Expecting ',' delimiter: line 5 column 5 (char 265)):
+```json
+[
+  {
+    "label": "[DATA_SECURITY_POLICY]",
+    "description": "The excerpt emphasizes the importance of privacy for democratic freedoms and other rights, but it doesn't explicitly detail any specific exceptions to these rights within the employment context."
+    "surface_forms": []
+  },
+  {
+    "label": "Risk-based approach and flexible, principles-based regulations",
+    "description": "The excerpt suggests prioritizing a risk-based approach and flexible, principles-based regulations rather than mandating specific notices or creating expansive individual legal recourse."
+    "surface_forms": []
+  },
+  {
+    "label": "Balancing individual rights with broader societal needs",
+    "description": "The excerpt highlights the need for a robust privacy framework aligned with international human rights standards, particularly Article 12 of the Universal Declaration of Human Rights, and suggests recognizing a ‘wider public interest’ in privacy will be crucial for balancing individual rights with broader societal needs."
+    "surface_forms": []
+  }
+]
+```
+EXTRACTED JSON CANDIDATE (Error: JSONDecodeError):
+[
+  {
+    "label": "[DATA_SECURITY_POLICY]",
+    "description": "The excerpt emphasizes the importance of privacy for democratic freedoms and other rights, but it doesn't explicitly detail any specific exceptions to these rights within the employment context."
+    "surface_forms": []
+  },
+  {
+    "label": "Risk-based approach and flexible, principles-based regulations",
+    "description": "The excerpt suggests prioritizing a risk-based approach and flexible, principles-based regulations rather than mandating specific notices or creating expansive individual legal recourse."
+    "surface_forms": []
+  },
+  {
+    "label": "Balancing individual rights with broader societal needs",
+    "description": "The excerpt highlights the need for a robust privacy framework aligned with international human rights standards, particularly Article 12 of the Universal Declaration of Human Rights, and suggests recognizing a ‘wider public interest’ in privacy will be crucial for balancing individual rights with broader societal needs."
+    "surface_forms": []
+  }
+]
+
+--- QID: Q4 --- CHUNK: 29 --- JSON_PARSE_VALUE_ERROR ---
+PROMPT USER CONTENT (approx first 500 chars):
+You are a highly precise assistant for thematic analysis. Your task is to extract key recurring themes from the provided text.
+
+STRICT OUTPUT REQUIREMENTS:
+1.  Your entire response MUST be a single, valid JSON list.
+2.  Each element in the list MUST be a JSON object.
+3.  Each JSON object MUST contain exactly three keys: "label", "description", and "surface_forms".
+4.  The value for "label" MUST be a string, IN ALL_CAPITAL_SNAKE_CASE, AND enclosed in square brackets. Example of a correct label: "...
+RAW LLM RESPONSE (Error: JSONDecodeError - Expecting ',' delimiter: line 5 column 5 (char 265)):
+```json
+[
+  {
+    "label": "[DATA_SECURITY_POLICY]",
+    "description": "The excerpt emphasizes the importance of privacy for democratic freedoms and other rights, but it doesn't explicitly detail any specific exceptions to these rights within the employment context."
+    "surface_forms": []
+  },
+  {
+    "label": "Risk-based approach and flexible, principles-based regulations",
+    "description": "The excerpt suggests prioritizing a risk-based approach and flexible, principles-based regulations rather than mandating specific notices or creating expansive individual legal recourse."
+    "surface_forms": []
+  },
+  {
+    "label": "Balancing individual rights with broader societal needs",
+    "description": "The excerpt highlights the need for a robust privacy framework aligned with international human rights standards, particularly Article 12 of the Universal Declaration of Human Rights, and suggests recognizing a ‘wider public interest’ in privacy will be crucial for balancing individual rights with broader societal needs."
+    "surface_forms": []
+  }
+]
+```
+EXTRACTED JSON CANDIDATE (Error: JSONDecodeError):
+[
+  {
+    "label": "[DATA_SECURITY_POLICY]",
+    "description": "The excerpt emphasizes the importance of privacy for democratic freedoms and other rights, but it doesn't explicitly detail any specific exceptions to these rights within the employment context."
+    "surface_forms": []
+  },
+  {
+    "label": "Risk-based approach and flexible, principles-based regulations",
+    "description": "The excerpt suggests prioritizing a risk-based approach and flexible, principles-based regulations rather than mandating specific notices or creating expansive individual legal recourse."
+    "surface_forms": []
+  },
+  {
+    "label": "Balancing individual rights with broader societal needs",
+    "description": "The excerpt highlights the need for a robust privacy framework aligned with international human rights standards, particularly Article 12 of the Universal Declaration of Human Rights, and suggests recognizing a ‘wider public interest’ in privacy will be crucial for balancing individual rights with broader societal needs."
+    "surface_forms": []
+  }
+]
