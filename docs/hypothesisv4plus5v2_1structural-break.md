@@ -1,5 +1,5 @@
----
 
+---
 title: "CIv4+5 Hypothesis v2.1 – The Reality Signal"
 description: "Modular refinement introducing the Reality Signal (RS) within the CIv4+5 framework."
 --------------------------------------------------------------------------------------------------
