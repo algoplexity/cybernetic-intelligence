@@ -120,6 +120,14 @@ This version incorporates insights from "The Physics of Learning" (Ushveridze, 2
 > 🔄 *Parroting Layer:* Reconstruct original text from TUs + residuals.
 > Evaluate compressibility → this becomes a proxy for **internal predictive fidelity** (resonance condition).
 
+> 🔍 *Clarification:* While this symbolic compression engine and the transformer described below share a common goal — learning and applying abstractions — they remain **functionally distinct** at this stage. The compression engine operates via symbolic motif detection (using BDM), while the transformer learns neural representations from synthetic reconstructions. In future phases of CIv6, these may converge into a unified, compression-aware model capable of both abstraction and self-tuning.
+
+* Core symbolic module identifies **Thematic Units (TUs)** using motif detection + BDM cost minimization.
+* Produces `OptimizedCodebookOutput` with traceable theme→passage mappings.
+
+> 🔄 *Parroting Layer:* Reconstruct original text from TUs + residuals.
+> Evaluate compressibility → this becomes a proxy for **internal predictive fidelity** (resonance condition).
+
 ### 3. **Synthetic Generator (Digital Resonator)**
 
 * TU recombination engine constructs **high-fidelity synthetic data** with known provenance.
@@ -172,3 +180,4 @@ This version incorporates insights from "The Physics of Learning" (Ushveridze, 2
 > "Every act of compression that aligns internal state with external reality is an act of learning — and in CIv6, it’s also an act of thermodynamic intelligence."
 
 ---
+
