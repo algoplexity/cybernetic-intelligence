@@ -92,3 +92,83 @@ It is time to stop treating cognition as a pipeline, and begin building viable s
 * Harutyunyan et al. (2024). *A Geometric Modeling of Occam's Razor in Deep Learning*. [arXiv:2406.01115](https://arxiv.org/abs/2406.01115)
 * Maturana, H. R., & Varela, F. J. (1980). *Autopoiesis and Cognition*. Reidel.
 * Prior CI versions: [CIv1](https://algoplexity.github.io/cybernetic-intelligence/hypothesis), [CIv2](https://algoplexity.github.io/cybernetic-intelligence/hypothesisv2), [CIv3](https://algoplexity.github.io/cybernetic-intelligence/hypothesisv3), [CIv4](https://algoplexity.github.io/cybernetic-intelligence/hypothesisv4), [CIv4+5](https://algoplexity.github.io/cybernetic-intelligence/hypothesisv4plus5)
+
+## Addendum: The Physics of Learning as Textual Intelligence ##
+
+## Overview
+
+CIv6 posits that intelligence arises from an agent's ability to **compress, abstract, and generalize** information in a way that maintains **causal coherence** with its environment. Building upon CIv4+5, CIv6 integrates algorithmic information theory (AIT), MDL-based motif induction, and transformer-based internal state monitoring, evolving into a **compression-aligned, self-adaptive resonant system**.
+
+This version incorporates insights from "The Physics of Learning" (Ushveridze, 2024), reframing learning as an **energy-extracting resonance process** and extending the architecture toward full autonomy.
+
+---
+
+## CIv6 Architecture
+
+> The following section introduces an architectural sketch of CIv6 in its most recent implementation phase, designed to unify symbolic compression, internal state monitoring, and resonance-based feedback for autonomous learning. This architecture complements — rather than replaces — the conceptual flow from v1 through v6.
+
+### 1. **Input Corpus (Raw Text)**
+
+* Public consultation responses, policy documents, or qualitative survey data.
+* Preprocessed into QID-linked passages.
+
+### 2. **Compression Engine: MDL-Based Theme Induction**
+
+* Core symbolic module identifies **Thematic Units (TUs)** using motif detection + BDM cost minimization.
+* Produces `OptimizedCodebookOutput` with traceable theme→passage mappings.
+
+> 🔄 *Parroting Layer:* Reconstruct original text from TUs + residuals.
+> Evaluate compressibility → this becomes a proxy for **internal predictive fidelity** (resonance condition).
+
+### 3. **Synthetic Generator (Digital Resonator)**
+
+* TU recombination engine constructs **high-fidelity synthetic data** with known provenance.
+* Stochastic variation introduced via residual sampling or latent drift.
+* This output is used to **bootstrap autonomous training** of a downstream transformer.
+
+### 4. **Compression-Aligned Transformer (CAT)**
+
+* A small or mid-sized encoder trained on synthetic data.
+* Tasks:
+
+  * Predict original passage from TU embeddings.
+  * Minimize BDM or compression loss.
+  * Detect internal drift / semantic breaks.
+  * Optionally: output causal signatures of theme shifts.
+
+> 🧠 *Internal State Monitoring*: Embeddings + loss dynamics are analyzed as signals of semantic resonance or drift. This constitutes **digital self-tuning**.
+
+### 5. **Latent Semantic Energy Feedback Loop**
+
+* Internal loop compares `f` (internal abstraction) to `f'` (reconstructed abstraction).
+* Divergence = digital energy loss → triggers compression refinement.
+* Convergence = minimal loss → interpreted as **successful energy extraction** → reinforces abstraction.
+
+---
+
+## Key Principles
+
+* **Compression = Intelligence**: The model’s ability to compress without loss reflects its cognitive efficiency.
+* **Resonance = Causal Alignment**: Learning is the emergence of internal patterns that match environmental forces.
+* **Self-Tuning via Internal States**: Feedback from latent embedding drift or reconstruction loss is used to adapt model parameters — a form of internalized learning.
+* **Synthetic Fidelity = Ethical Liberation**: High-fidelity synthetic data allows training without breaching the privacy or integrity of sensitive original inputs.
+
+---
+
+## Next Milestones
+
+1. Implement `SyntheticCorpusBuilder` for TU-based generation.
+2. Fine-tune a small transformer using compression-aligned objectives.
+3. Instrument latent state monitoring to measure resonance and causal coherence.
+4. Explore collective inference dynamics across CAT agents (see Appendix A from Ushveridze).
+
+---
+
+## Citation and Foundation
+
+* Ushveridze, A. (2024). *The Physics of Learning: From Autoencoders to Truly Autonomous Learning Machines.*
+* CIv6 emerges from the convergence of algorithmic compression (MDL/BDM), cybernetic feedback loops, and the physical reconceptualization of learning as resonance-driven adaptation.
+
+> "Every act of compression that aligns internal state with external reality is an act of learning — and in CIv6, it’s also an act of thermodynamic intelligence."
+
+---
