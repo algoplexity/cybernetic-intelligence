@@ -1,6 +1,7 @@
 
 ---
 # 📌 **CIv6 Hypothesis for Structural Break Detection**
+## LLM as a geometric-algebraic engines of concept formation
 
 ### Hypothesis:
 
