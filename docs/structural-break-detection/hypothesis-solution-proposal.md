@@ -106,3 +106,134 @@ for timestep in stream:
 * Grosse et al., "A Geometric Modeling of Occam's Razor in Deep Learning"
 * Topological Reasoning & Semantic Ring Cycles, OpenReview & Anthropic papers
 * Transformer FIM & BDM dynamics, Algebraic Geometry in LLMs
+
+---
+
+### ✅ **Expanded Implementation Roadmap (Actionable CIv6-SBD)**
+
+---
+
+#### 🔁 1. **Semantic Loop Monitoring (Wilson Loops / Persistent Homology)**
+
+**Goal:** Detect regime transitions via changes in geometric cycles formed by attention patterns.
+
+**Actionable Steps:**
+
+* Extract attention matrices `A_t` from every layer at each timestep.
+* Compute *cycle persistence diagrams* using tools like `GUDHI` or `Ripser`.
+* Measure Wilson loop-like quantities by summing attention energy around token cycles:
+
+  ```python
+  energy = trace(A1 @ A2 @ ... @ An)
+  ```
+* Monitor how persistence lifespan or energy norms decay across time — abrupt shortening may indicate a break.
+
+---
+
+#### 📉 2. **Fisher Information Geometry (FIM)**
+
+**Goal:** Capture sharp collapses in model sensitivity across parameter space.
+
+**Actionable Steps:**
+
+* For each batch, compute the empirical FIM using hidden states:
+
+  ```python
+  FIM = sum([grad(logits)^T @ grad(logits) for sample in batch])
+  ```
+* Perform eigendecomposition to track:
+
+  * **Effective rank**
+  * **Spectral entropy**
+  * **Largest-to-smallest eigenvalue ratio**
+* Trigger break detection when entropy increases or the spectrum flattens dramatically.
+
+---
+
+#### 🔣 3. **ECA Motif Lattice Tracker**
+
+**Goal:** Monitor the internal “discrete automata” evolution within the LLM’s activation lattice.
+
+**Actionable Steps:**
+
+* Reshape hidden activations into 2D sequences:
+  (token x layer) or (token x head) arrays.
+* Run *ECA rule matchers* (e.g., Rule 110, Rule 54) over slices of these arrays.
+* Detect regime shift when matched motifs become unstable, disappear, or change rule class.
+
+---
+
+#### 🔍 4. **Attribution Drift (Sakabe-inspired)**
+
+**Goal:** Use explainability methods to track how attribution paths diverge across inputs.
+
+**Actionable Steps:**
+
+* Use **Integrated Gradients** or **Layer-wise Relevance Propagation (LRP)** to compute token-to-output maps.
+* For a rolling window of timesteps, calculate *attribution consistency score* between adjacent inputs:
+
+  ```python
+  drift = cosine_distance(attr_t, attr_t+1)
+  ```
+* Alert if drift exceeds historical baseline (Z-score threshold) or shows divergence spikes.
+
+---
+
+#### 🔥 5. **Entropy Feedback Divergence**
+
+**Goal:** Detect instability in the model’s compression dynamics using MDL principles.
+
+**Actionable Steps:**
+
+* Compute **block-wise entropy** of hidden state chunks (e.g., every 10 tokens).
+* Monitor **BDM** or **Kolmogorov-style compressibility** using tools like `pybdm`.
+* Large increases in entropy or compressibility loss signal disordered representations—mark as potential regime break.
+
+---
+
+#### 🧠 6. **Autopoietic Core (Latent Reconfiguration)**
+
+**Goal:** After a break, the model adapts by re-anchoring its internal representations.
+
+**Actionable Steps:**
+
+* Maintain a concept lattice (`sklearn.NearestNeighbors` or custom tree).
+* When regime break is confirmed:
+
+  * Prune inconsistent nodes.
+  * Rewire motifs by retraining shallow probes (e.g., `LoRA` adapters or linear layers).
+* Store new motifs as versioned embeddings (e.g., concept snapshots) for tracing.
+
+---
+
+#### ⚙️ 7. **Geometric MDL Engine**
+
+**Goal:** Continuously score the information geometry of the internal state space.
+
+**Actionable Steps:**
+
+* Combine:
+
+  * FIM rank,
+  * Loop persistence count,
+  * Compression score (BDM)
+* Use a weighted MDL-inspired cost:
+
+  ```python
+  L_total = α * BDM + β * SpectralEntropy + γ * 1/Persistence
+  ```
+* Plot the moving average of `L_total`; spikes signal inefficiencies → possible break.
+
+---
+
+### 🧪 Next Steps
+
+* ✅ Prototype the entropy tracker and loop monitor independently.
+* 🔄 Simulate break events (e.g., switch topics or styles mid-stream) to evaluate detector sensitivity.
+* 📊 Visualize each signal stream over time and explore **fusion logic** for final regime detection.
+
+---
+
+
+
+
