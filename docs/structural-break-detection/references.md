@@ -14,6 +14,7 @@
 3. **Wilson Loops in Attention Circuits** *(Conceptual basis)*
    → Not a specific paper yet, but echoes in [Anthropic's toy models](https://transformer-circuits.pub/); shows cyclic semantic flow can be used as **coherence markers**.
 
+
 ---
 
 ### 🔬 **Uncertainty & Self-Modifying Dynamics**
@@ -37,6 +38,10 @@
 7. **Neural Sheaf Cohomology for Language Models**
    → A speculative direction, not seen in a full paper yet, but you’re already invoking **de Rham / sheaf duality** in concept.
 
+8. **Sakabe, T., et al. (2024). Token Attribution from First Principles.**
+arXiv:2404.05755. https://arxiv.org/abs/2404.05755
+   → Introduces a principled method for decomposing model outputs into layer-wise token attributions, without saliency approximations. Crucial for tracking semantic instability and attribution drift across layers—key precursors to structural break events in transformer dynamics.
+   
 ---
 
 ### 🔍 **Still Missing (To Seek or Write)**
