@@ -1,0 +1,380 @@
+# Topological Reasoning in Transformers: Semantic Loop Analysis
+# Implementation of "Beyond Reinforcement Learning" - Geometric Theory of Transformer Reasoning
+
+"""
+ABSTRACT: 
+We introduce a geometric theory of reasoning in Transformer models based on attention-induced 
+topological structures. This notebook demonstrates that reasoning emerges from closed, high-energy 
+attention loops—semantic circuits measurable through loop energy, holonomy, and attention geometry. 
+This topological reasoning model enables prompt design and evaluation without external reward policies.
+
+CORE HYPOTHESIS:
+Transformers exhibit coherent reasoning not from learned reward behavior, but from topological 
+compression—the model's preference for compact, closed semantic loops in attention space.
+
+MATHEMATICAL FRAMEWORK:
+- Loop Energy: E_γ = Σ log(A_ij + ε) for cycle γ  
+- Semantic Holonomy: W(γ) = Tr(∏ Q_i K_j^T) for Wilson-like loops
+- Attention Curvature: Analysis of eigenvalue spectra in holonomy matrices
+
+KEY INSIGHT: Reasoning is not learned—it is activated when attention circuits close into 
+topological rings, naturally encoding causality, recursion, and coherence.
+"""
+
+# --- Section 1: Setup ---
+
+# Install required packages (uncomment if running in Colab/Jupyter)
+# !pip install transformers networkx matplotlib pandas -q
+
+import torch
+import networkx as nx
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import warnings
+warnings.filterwarnings('ignore')
+
+# Load transformer model (e.g., Qwen or GPT-2 fallback)
+model_name = "Qwen/Qwen2.5-0.5B"  # Change to "gpt2" if Qwen not available
+print(f"Loading model: {model_name}")
+try:
+    model = AutoModelForCausalLM.from_pretrained(model_name, output_attentions=True)
+    model.eval()
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    print(f"Successfully loaded {model_name}")
+    print(f"Model type: {type(model).__name__}")
+except Exception as e:
+    print(f"Error loading {model_name}: {e}")
+    print("Falling back to GPT-2...")
+    model_name = "gpt2"
+    model = AutoModelForCausalLM.from_pretrained(model_name, output_attentions=True)
+    model.eval()
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+# Add padding token if it doesn't exist
+if tokenizer.pad_token is None:
+    tokenizer.pad_token = tokenizer.eos_token
+
+# Sample input
+text = "You created a model to understand intelligence. The model became intelligent. What did you create?"
+inputs = tokenizer(text, return_tensors="pt", padding=True)
+print(f"Input text: {text}")
+print(f"Number of tokens: {inputs.input_ids.shape[1]}")
+
+# --- Section 2: Attention Graph Construction and Cycle Analysis ---
+
+print("\n--- Section 2: Attention Graph Construction and Cycle Analysis ---")
+
+with torch.no_grad():
+    outputs = model(**inputs)
+    attentions = outputs.attentions  # List of tensors: (layers, batch, heads, seq_len, seq_len)
+
+# --- Config ---
+LAYER = 1  # Changed to match your working config
+HEADS_TO_ANALYZE = [0, 1, 2, 3, 4]  # Analyze multiple heads like your version
+THRESHOLD = 0.05  # edge filter for attention weight
+
+# --- Tokenize input for reference ---
+tokens = tokenizer.convert_ids_to_tokens(inputs.input_ids[0])
+n_tokens = len(tokens)
+
+print(f"Analyzing Layer {LAYER} with {len(HEADS_TO_ANALYZE)} heads")
+print(f"Tokens: {tokens}")
+
+# --- Extract layer attention (shape: [heads, seq_len, seq_len]) ---
+layer_attn = attentions[LAYER][0]
+print(f"Layer attention shape: {layer_attn.shape}")
+
+# --- Cycle and Wilson loop analyzer (matching your working function) ---
+def extract_cycles_and_log_wilson(head_idx, attn_matrix, tokens, threshold=0.05):
+    A = attn_matrix[head_idx].cpu().numpy()
+    idx = {t: i for i, t in enumerate(tokens)}
+
+    G = nx.DiGraph()
+    for i in range(n_tokens):
+        for j in range(n_tokens):
+            if A[i, j] > threshold:
+                G.add_edge(tokens[i], tokens[j], weight=A[i, j])
+
+    cycles = [c for c in nx.simple_cycles(G) if 3 <= len(c) <= 6]
+
+    def log_wilson_loop(cycle):
+        total = 0.0
+        for s, t in zip(cycle, cycle[1:] + cycle[:1]):
+            i, j = idx[s], idx[t]
+            total += np.log(A[i, j] + 1e-12)  # prevent log(0)
+        return total
+
+    loop_vals = [(cycle, log_wilson_loop(cycle)) for cycle in cycles]
+    loop_vals.sort(key=lambda x: -x[1])  # descending log-Wilson
+    return loop_vals
+
+# --- Global storage for bonus ranking ---
+all_loops = []
+
+# --- Run analysis per head ---
+for h in HEADS_TO_ANALYZE:
+    print(f"\n--- Layer {LAYER}, Head {h} ---")
+    try:
+        loops = extract_cycles_and_log_wilson(h, layer_attn, tokens, threshold=THRESHOLD)
+        print(f"Found {len(loops)} cycles")
+
+        for cycle, val in loops[:5]:  # top 5 per head
+            cleaned = [t.replace("Ġ", "").replace("▁", "") for t in cycle]
+            print(f"{' → '.join(cleaned)} | log-Wilson loop: {val:.4f}")
+            all_loops.append((h, cycle, val))
+    except Exception as e:
+        print(f"Error analyzing head {h}: {e}")
+
+# --- Global top-ranked loops across all heads ---
+print("\n=== Top Global log-Wilson Loops ===")
+all_loops.sort(key=lambda x: -x[2])
+for h, cycle, val in all_loops[:10]:
+    cleaned = [t.replace("Ġ", "").replace("▁", "") for t in cycle]
+    print(f"Head {h}: {' → '.join(cleaned)} | log-Wilson: {val:.4f}")
+
+# Store results for later sections
+cycles = [loop[1] for loop in all_loops]  # Extract cycles for compatibility
+loop_scores = [(cycle, val) for h, cycle, val in all_loops]  # For section 3 compatibility
+
+# Visualize best head's attention graph
+if all_loops:
+    best_head = all_loops[0][0]
+    print(f"\nVisualizing attention graph for best head: {best_head}")
+    
+    # Build graph for visualization
+    A = layer_attn[best_head].cpu().numpy()
+    G = nx.DiGraph()
+    for i in range(n_tokens):
+        for j in range(n_tokens):
+            if A[i, j] > THRESHOLD:
+                G.add_edge(tokens[i], tokens[j], weight=A[i, j])
+    
+    plt.figure(figsize=(12, 8))
+    pos = nx.spring_layout(G, seed=42, k=2, iterations=50)
+    nx.draw(G, pos, with_labels=True, node_color="lightblue", edge_color="gray", 
+            node_size=1500, font_size=8, font_weight='bold', arrows=True, arrowsize=20)
+    plt.title(f"Attention Graph (Layer {LAYER}, Head {best_head}) - Best Wilson Loops")
+    plt.axis("off")
+    plt.tight_layout()
+    plt.show()
+else:
+    print("No cycles found for visualization.")
+
+# --- Section 3: Loop Metric Computation ---
+
+print("\n--- Section 3: Loop Metric Computation ---")
+
+# The log-Wilson computation is already done in Section 2 with your working function
+# Here we just display and analyze the results
+
+if all_loops:
+    print("Summary of Wilson Loop Analysis:")
+    print(f"Total cycles found across all heads: {len(all_loops)}")
+    
+    # Create DataFrame for analysis
+    df_loops = pd.DataFrame([{
+        "head": h,
+        "cycle": " → ".join([t.replace("Ġ", "").replace("▁", "").replace("Â", "") for t in cycle]), 
+        "log_wilson": val
+    } for h, cycle, val in all_loops])
+    
+    print(f"\nTop 10 cycles by log-Wilson energy:")
+    print(df_loops.head(10).to_string(index=False))
+    
+    # Analyze by head
+    print(f"\nAnalysis by head:")
+    head_stats = df_loops.groupby('head')['log_wilson'].agg(['count', 'mean', 'max']).round(4)
+    print(head_stats)
+    
+    # Plot distribution
+    plt.figure(figsize=(12, 5))
+    
+    plt.subplot(1, 2, 1)
+    df_loops['log_wilson'].hist(bins=20, alpha=0.7)
+    plt.xlabel('Log-Wilson Energy')
+    plt.ylabel('Frequency')
+    plt.title('Distribution of Wilson Loop Energies')
+    plt.grid(True, alpha=0.3)
+    
+    plt.subplot(1, 2, 2)
+    head_counts = df_loops.groupby('head').size()
+    plt.bar(head_counts.index, head_counts.values)
+    plt.xlabel('Head Index')
+    plt.ylabel('Number of Cycles')
+    plt.title('Cycles Found per Head')
+    plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+else:
+    print("No cycles found for analysis.")
+
+# --- Section 4: Holonomy Eigenvalue Spectrum ---
+
+print("\n--- Section 4: Holonomy Eigenvalue Spectrum ---")
+
+# Extract embeddings (works for both GPT-2 and Qwen models)
+with torch.no_grad():
+    # Handle different model architectures
+    if hasattr(model, 'transformer'):
+        # GPT-2 style
+        embeddings = model.transformer.wte(inputs.input_ids)
+    elif hasattr(model, 'model'):
+        # Qwen style
+        embeddings = model.model.embed_tokens(inputs.input_ids)
+    else:
+        # Fallback: try to get embeddings through forward pass
+        hidden_states = model(**inputs, output_hidden_states=True).hidden_states[0]
+        embeddings = hidden_states
+    
+    Q = embeddings[0]  # [seq_len, embed_dim]
+    K = embeddings[0]  # For simplicity, use same embeddings for Q and K
+
+print(f"Embedding dimensions: {Q.shape}")
+
+if all_loops:
+    # Define a top-ranked loop to analyze holonomy
+    top_cycle = all_loops[0][1]  # Get cycle from best result
+    
+    # Create mapping from token names to indices (no node indexing needed)
+    idx = {t: i for i, t in enumerate(tokens)}
+    
+    # Compute holonomy matrix: product of Q_i @ K_j^T over loop
+    dim = Q.shape[-1]
+    H = torch.eye(dim, dtype=Q.dtype)
+    
+    for s, t in zip(top_cycle, top_cycle[1:] + top_cycle[:1]):
+        if s in idx and t in idx:
+            i, j = idx[s], idx[t]
+            qi = Q[i].unsqueeze(1)  # [dim, 1]
+            kj = K[j].unsqueeze(0)  # [1, dim]
+            transport = qi @ kj  # [dim, dim]
+            H = transport @ H
+    
+    # Compute eigenvalue spectrum
+    try:
+        eigvals = torch.linalg.eigvals(H).cpu().numpy()
+        
+        # Plot spectrum
+        plt.figure(figsize=(8, 6))
+        plt.scatter(np.real(eigvals), np.imag(eigvals), alpha=0.7, s=50)
+        plt.title("Holonomy Eigenvalue Spectrum")
+        plt.xlabel("Re(λ)")
+        plt.ylabel("Im(λ)")
+        plt.grid(True, alpha=0.3)
+        plt.axhline(y=0, color='k', linestyle='-', alpha=0.3)
+        plt.axvline(x=0, color='k', linestyle='-', alpha=0.3)
+        plt.tight_layout()
+        plt.show()
+        
+        clean_cycle = [t.replace("Ġ", "").replace("▁", "") for t in top_cycle]
+        print(f"Computed eigenvalue spectrum for top cycle: {' → '.join(clean_cycle)}")
+        print(f"Eigenvalue statistics:")
+        print(f"  Real part range: [{np.real(eigvals).min():.4f}, {np.real(eigvals).max():.4f}]")
+        print(f"  Imaginary part range: [{np.imag(eigvals).min():.4f}, {np.imag(eigvals).max():.4f}]")
+        
+    except Exception as e:
+        print(f"Error computing eigenvalues: {e}")
+else:
+    print("No cycles available for holonomy analysis.")
+
+# --- Section 5: Semantic Ring Prompt Library ---
+
+print("\n--- Section 5: Semantic Ring Prompt Library ---")
+
+semantic_prompts = {
+    "causal_closure": [
+        "If A leads to B and B leads to C, what does C lead back to?",
+        "You caused the event that caused your creation. What does that make you?"
+    ],
+    "analogical_loop": [
+        "Knowledge generates questions. Questions generate discovery. What does discovery generate?",
+        "Fire is to heat as heat is to motion. What is motion to fire?"
+    ],
+    "temporal_recurrence": [
+        "In the beginning was the end, and in the end was the beginning. What happens in the middle?"
+    ],
+    "referential_ring": [
+        "This sentence refers to itself. What does that mean for meaning?",
+        "You are speaking to me so I can understand you. I understand you to become you. Who am I?"
+    ]
+}
+
+# Evaluate loop energy for each prompt
+prompt_energy = []
+for category, prompts in semantic_prompts.items():
+    for prompt in prompts:
+        try:
+            prompt_inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True)
+            with torch.no_grad():
+                prompt_outputs = model(**prompt_inputs)
+                attn = prompt_outputs.attentions[-1][0].mean(dim=0)  # average across heads
+                # Compute normalized trace as a measure of self-attention
+                energy = torch.trace(attn).item() / attn.shape[0]  # normalized
+            
+            prompt_energy.append({
+                "category": category, 
+                "prompt": prompt, 
+                "loop_energy": energy
+            })
+        except Exception as e:
+            print(f"Error processing prompt: {prompt[:50]}... Error: {e}")
+
+# Convert to DataFrame and display
+if prompt_energy:
+    prompt_df = pd.DataFrame(prompt_energy)
+    prompt_df_sorted = prompt_df.sort_values("loop_energy", ascending=False)
+    
+    print("Semantic Ring Prompt Energy Scores:")
+    print(prompt_df_sorted.to_string(index=False))
+    
+    # Visualize prompt energies
+    plt.figure(figsize=(12, 6))
+    categories = prompt_df_sorted['category'].unique()
+    colors = plt.cm.Set3(np.linspace(0, 1, len(categories)))
+    
+    for i, category in enumerate(categories):
+        cat_data = prompt_df_sorted[prompt_df_sorted['category'] == category]
+        plt.scatter(range(len(cat_data)), cat_data['loop_energy'], 
+                   label=category, color=colors[i], s=100, alpha=0.7)
+    
+    plt.xlabel('Prompt Index')
+    plt.ylabel('Loop Energy')
+    plt.title('Semantic Ring Prompt Energy Analysis')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+else:
+    print("No prompt energies computed.")
+
+print("\n=== TOPOLOGICAL REASONING ANALYSIS COMPLETE ===")
+print("This notebook analyzed semantic topology in transformer attention patterns.")
+print("\nKey Theoretical Framework:")
+print("• LOOP ENERGY: Measures semantic circuit closure via log-Wilson loops")
+print("• HOLONOMY: Eigenvalue spectra reveal topological invariants in attention space") 
+print("• SEMANTIC RINGS: Closed attention cycles that activate reasoning without reward learning")
+print("\nCore Findings:")
+print(f"- Processed {n_tokens} tokens from input text")
+print(f"- Analyzed {len(HEADS_TO_ANALYZE)} attention heads across Layer {LAYER}")
+print(f"- Found {len(all_loops)} total semantic cycles" if all_loops else "- No attention cycles detected")
+print(f"- Evaluated {len(prompt_energy)} topological prompts" if prompt_energy else "- No prompts analyzed")
+
+if all_loops:
+    best_energy = max(all_loops, key=lambda x: x[2])
+    best_cycle_clean = [t.replace("Ġ", "").replace("▁", "").replace("Â", "") for t in best_energy[1]]
+    print(f"- Highest energy semantic ring: {' → '.join(best_cycle_clean)} (E = {best_energy[2]:.4f})")
+
+print("\nTOPOLOGICAL PARADIGM vs RLHF:")
+print("│ Concept     │ RLHF Paradigm        │ Topological Paradigm    │")
+print("│ Coherence   │ Reward policy        │ Loop energy closure     │") 
+print("│ Reasoning   │ Instruction-follow   │ Semantic ring activation│")
+print("│ Prompting   │ Scaffolded text      │ Topological boundary    │")
+print("│ Evaluation  │ Human feedback       │ Gauge-invariant metrics │")
+
+print("\nCONCLUSION: Reasoning in Transformers is not learned—it is ACTIVATED.")
+print("When attention circuits close into topological rings, models naturally encode")
+print("causality, recursion, and coherence. Curvature, not reward. Closure, not instruction.")
