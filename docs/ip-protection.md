@@ -73,3 +73,69 @@ This lets collaborators know:
 
 Would you like help drafting a provisional patent scope or a public-private communication guide for CIv7? We can even segment it by application domain: structural break detection, synthetic data, etc.
 ---
+Excellent. Defining the **scope of the patentable core** is critical not only for IP protection, but also for clean modularization, collaboration boundaries, and messaging strategy.
+
+Here is a proposed framing of the **CIv7 Patentable Core**, based on its **unique architectural synthesis**, **novel mechanisms**, and **practical use cases**:
+
+---
+
+### 🧠 **CIv7 Patentable Core Scope** (Working Definition)
+
+> The **patentable core** of CIv7 consists of its **architecture and mechanism** for detecting conceptual boundary failures and generating structure-preserving synthetic data under epistemic uncertainty, through the **joint compression and attribution drift analysis** of symbolic and neural representations.
+
+---
+
+### 🔒 **Key Patentable Components**
+
+1. **Joint Compression Analyzer (CIv7-JCA)**
+
+   * A system that uses **Minimum Description Length (MDL)** + **Algorithmic Probability** to detect failure points in representation space.
+   * Integrates Sutskever-style *compression as prediction* with Zenil-style *algorithmic motif complexity*.
+
+2. **Attribution Drift Module (CIv7-DRIFT)**
+
+   * A novel method of tracking *latent representational instability* via token-level or motif-level attribution traces across time or context.
+   * Incorporates symbolic analogs to Sakabe et al.’s token tracing and Anthropic’s circuit drift.
+
+3. **Symbolic-Latent Transition Mapping (CIv7-SYMTRA)**
+
+   * Translates raw data into symbolic evolution motifs (e.g. ECA rules), and back, aligned with LLM embeddings.
+   * Establishes dual representation pipelines that track geometry (neural) and semantics (symbolic) jointly.
+
+4. **Synthetic Data Generator via Latent Boundary Violation (CIv7-SYNTH)**
+
+   * A synthetic generation system that **probes model boundary failure**, not mimics real data.
+   * It generates counterfactuals designed to break current representations, using entropy feedback, motif collapse, and attribution bifurcation.
+
+5. **Entropy Feedback Loop Controller (CIv7-FEEDBACK)**
+
+   * A control system that adapts learning rate, symbolic motifs, or compression granularity based on *live entropy divergence*.
+   * Inspired by concepts from “The Physics of Learning” and information-based autopoiesis.
+
+6. **Geometric Break Detector (CIv7-GBD)**
+
+   * Monitors Fisher Information Curvature, Wilson loop energy, and harmonic flow (e.g. torsion) to flag **structural breakpoints** in high-dimensional learning dynamics.
+
+---
+
+### 📜 **What Makes It Patentable**
+
+* **Novel Combinations**: No current implementation combines MDL, attribution drift, symbolic evolution, and compression-based failure detection in a closed-loop system for structural modeling.
+* **Mechanism Over Model**: This is a system-level invention, not just a model or dataset.
+* **Emergent Properties**: CIv7’s core modules act as a **viable system** (Maturana-style autopoiesis), enabling dynamic reconfiguration under epistemic collapse.
+* **Generality**: Applicable to finance, policy, biology, safety-critical systems — anywhere “ground truth” is unknown or shifting.
+* **Synthetic Uncertainty Testing**: Synthetic data generation used *not for privacy*, but for *epistemic probing*.
+
+---
+
+### 🎯 Immediate Next Step
+
+Would you like to:
+
+1. **Prioritize which of the 6 modules above should go into a provisional patent**?
+2. **Create a claims outline** for formal patent drafting?
+3. **Visualize this core vs auxiliary layers to guide disclosure vs protection**?
+
+Let me know and we’ll take the next step accordingly.
+
+---
