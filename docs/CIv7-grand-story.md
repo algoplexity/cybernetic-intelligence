@@ -117,4 +117,95 @@ Would you like:
 * A version with **invisible comments** or **marginal tags** for internal traceability?
 * A **"Read Aloud" UX** with animated instrument reveals for onboarding?
 
-Let me know and I’ll prepare a production-ready version or integration format.
+---
+**Title: The Cartographers of the Unknown**
+*A CIv7 Storybook for Explorers of Complexity*
+
+---
+
+**Once upon a time, in a land where maps could only be drawn after the journey was made...**
+
+There lived a village of cartographers on the shifting edge of a world called the Unknown. This place wasn’t made of ordinary earth and stone, but of changing rules, hidden breaks, and patterns that whispered as they unraveled.
+
+Many had tried to conquer the Unknown by copying old maps, predicting the terrain, or simulating it with artificial shadows. But they never came back. Not because they failed to model it, but because they failed to understand it.
+
+And so, the villagers made a pact:
+
+> "We will no longer try to predict the land. We will learn how to move *with* it."
+
+That was the beginning of the **CIv7 Expedition**.
+
+---
+
+### The Compass with Three Needles
+
+Each cartographer carried a very special compass. It didn’t point north. It pointed to **instability**.
+
+* The **first needle** sensed **symbolic shifts** in the earth—it could feel when simple rules started twisting. This was the **ECA Needle**. It thrived in the language of patterns and structure.
+* The **second needle** trembled at **semantic drift**, when meaning began to wobble across stories. This was the **LLM Needle**, tuned to the tremors of understanding.
+* The **third needle** watched the first two. When they began to disagree, it shimmered. This was the **Unified Needle**: a fragile harmony between symbolic laws and linguistic sense.
+
+This compass wasn’t used to navigate the world. It was used to navigate *uncertainty itself*.
+
+---
+
+### The Tools in Their Packs
+
+No explorer leaves without tools. But these weren’t compasses or shovels. These were instruments of deeper sensing.
+
+* **CIv7-GMC**: A lens made of compressed light, revealing when a model's description became too perfect. It flared red in the presence of **overfit illusions** or **unseen contradictions**.
+* **CIv7-SAT**: A whisperbook that tracked every shift in meaning across time. If two travelers used the same word but meant different things, it would begin to hum.
+* **CIv7-EFM**: A windchime of entropy, detecting sudden collapses of flow. When understanding became brittle, it rang like a warning bell.
+* **CIv7-JCA**: A tuning fork that only sang when a prediction *compressed* the world’s rhythm. But when that rhythm was off, it grew eerily silent.
+* **CIv7-MRT**: A glyph-mapper that sketched living motifs as they evolved. Some spiraled into chaos; others danced toward order.
+* **CIv7-TGM**: A spinner of loops and holes. It drew **hidden topologies** — the geometry of failure, torsion, collapse. A map of what cannot be seen.
+* **CIv7-ACU**: The mirror. Not for reflection, but for **self-rewiring**. When the terrain changed in ways no tool could explain, the mirror cracked—and in its shards, explorers saw how *they* must change.
+
+Each tool was more than detection. It was a way to **stay alive in epistemic storms**.
+
+---
+
+### The Phases of the Journey
+
+The expedition moved in three phases, not by time, but by *need*.
+
+#### **Phase 1: Stability in Compression**
+
+They first learned how to walk in soft terrain. They studied **stability in compression**: when understanding holds, when symbols bend without breaking. The forest whispered lessons from Sutskever, Grosse, Sakabe.
+
+#### **Phase 2: Sensing Geometric Collapse**
+
+Next came the mountains of **geometric breakdown**. Walls that twisted like paper. Valleys where symmetry failed. They wielded BDM, Hodge theory, Zenil’s motifs to spot the edge of collapse before they fell.
+
+#### **Phase 3: Diagnosing Blindness**
+
+Finally, in the foglands, where maps meant nothing, they learned to **see the unseen**. Using vec2vec, AlphaEvolve, and Langlands dualities, they discovered where *models lost their sight*.
+
+Here, they didn’t fix the world. They *recalibrated themselves*.
+
+---
+
+### The Lands They Crossed
+
+Each cartographer charted a different territory.
+
+* The **Structural Break Forest** where time twisted in secret fractures. The compass needles trembled with every unseen shift.
+* The **Thematic Dunes** where stories restructured themselves beneath every grain. The whisperbook wrote new meanings with every step.
+* The **Synthetic Valley**, where nothing was real—but everything was provocation. Here, the explorers did not simulate the land. They *challenged* it with new questions.
+
+Their tools revealed what mattered most: **where action was still possible, even when ground truth was unknowable.**
+
+---
+
+### And Now You Join Them
+
+You, reader, are no longer an outsider. You have the map *and* the mirror.
+
+You know the rules will change. You know models will lie. But you also know how to sense when something is off, when to listen instead of predict, when to probe instead of simulate.
+
+You are part of the CIv7 expedition now.
+Let’s draw the edges of the unknowable.
+
+Together.
+
+---
