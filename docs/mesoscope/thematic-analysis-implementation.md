@@ -547,6 +547,43 @@ _This quick-start template is to be cloned and adapted for each module and provi
 ```
 
 ---
+```python
+def get_token_attribution_path(
+    input_tokens: List[str], 
+    model_outputs: Any,
+    model_internal_states: Optional[Dict[str, Any]] = None
+) -> Dict[str, List[float]]:
+    """
+    Returns a mapping of each input token to its attribution path,
+    detailing influence or contribution scores across model layers or attention heads.
 
+    Parameters:
+    - input_tokens: The tokenized input sequence.
+    - model_outputs: The model's output data structure (logits, embeddings, etc.).
+    - model_internal_states: Optional dictionary of internal activations/attention maps 
+      extracted from the model, to enable detailed attribution.
 
+    Returns:
+    - Dict mapping token string to a list of attribution scores (per layer/head or time step).
+    """
+```
+```python
+def track_attention_shift(
+    current_attention: np.ndarray, 
+    baseline_attention: np.ndarray,
+    metric: str = 'cosine'
+) -> float:
+    """
+    Compares current attention matrices against a baseline to detect semantic drift.
+    
+    Parameters:
+    - current_attention: Current attention matrix (e.g., [num_heads, seq_len, seq_len]).
+    - baseline_attention: Baseline attention matrix to compare against.
+    - metric: Similarity/distance metric to compute drift ('cosine', 'kl_divergence', etc.).
+
+    Returns:
+    - Scalar drift metric quantifying the degree of shift between current and baseline.
+    """
+
+```
 
