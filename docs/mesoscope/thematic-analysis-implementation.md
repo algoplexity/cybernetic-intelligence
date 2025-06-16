@@ -433,5 +433,120 @@ Not strictly missing—but may enhance robustness and external uptake:
 
 ---
 
+## 📘 CIv7-TI Canonical Module Documentation (Internal Use)
+
+This document consolidates the CIv7-TI module definitions, function interfaces, and data/control flow diagram into a single reference point for onboarding, debugging, and extending the thematic intelligence system.
+
+---
+
+### 📑 Canonical Module Table
+
+| **Module** (Layer 1)                       | **Purpose / Problem Statement**                                                                                                                         | **Key Techniques**                                                                                | **Substrate**              | **Feeds Into**                            | **Key References**                                                            |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------- |
+| `CIv7-SAT`<br>Semantic Attribution Tracker | Tracks attribution path drift and steering instability across prompt variations or time. Detects meaning misalignment and unreliable attention routing. | `get_token_attribution_path(prompt_variant)`<br>`track_attention_shift(token_set, context_shift)` | Latent (Attention Layers)  | `CIv7-JCA`, `CIv7-ACU`                    | Braun et al.<br>Anthropic (Circuit Tracer)<br>OpenAI (Steering Failures)      |
+| `CIv7-JCA`<br>Joint Compression Analyzer   | Detects divergence in compressive structure and mutual predictability between summary themes and original corpus segments.                              | `compare_compression_ratio(X_theme, X_src)`<br>`track_joint_predictive_loss(X_latent, X_input)`   | Latent + Symbolic          | `CIv7-GMC`, `CIv7-MRT`, `CIv7-TGM`        | Sutskever (Compression-as-Prediction)<br>Shani et al.<br>Jha et al. (vec2vec) |
+| `CIv7-GMC`<br>Geometric MDL Core           | Identifies KL divergence spikes and motif instability, especially under overcompression or MDL collapse.                                                | `compute_bdm_curvature(latent_space)`<br>`extract_fim_spectrum(layer_subset)`                     | Latent                     | `CIv7-TGM`, `CIv7-ACU`                    | Shani et al.<br>Sutskever<br>MDL Theory                                       |
+| `CIv7-MRT`<br>Motif Rewiring Tracker       | Detects latent motif collapse, merging, or bifurcation under rephrasing, segmentation, or multiple viewpoints.                                          | `track_motif_reorg(segment_variants)`<br>`detect_latent_role_switch(motif_cluster)`               | Latent                     | `CIv7-TGM`                                | SASR<br>Shani et al.<br>Theme-Motif Literature                                |
+| `CIv7-TGM`<br>Topological Geometry Monitor | Detects topological instability (e.g., torsion loss, bifurcations) in latent manifolds indicating deeper semantic collapse.                             | `detect_torsion_instability(layer_slice)`<br>`measure_loop_energy(graph_manifold)`                | Latent                     | `CIv7-ACU`                                | Walch<br>Hodge Theory<br>Langlands<br>Chen et al. (GFSE)                      |
+| `CIv7-ACU`<br>Autopoietic Core Updater     | Adjusts prompting, internal routing, or fine-tuning to recover from detected failures via feedback-triggered rewiring.                                  | `trigger_autopoietic_rewire(signal_profile)`<br>`detect_feedback_discrepancy(activation_trace)`   | Latent (Feedback Circuits) | Final Theme Output                        | RLHF Instability (SASR)<br>Anthropic Repair Loops                             |
+| *(Link Layer)*                             | —                                                                                                                                                       | —                                                                                                 | —                          | —                                         | —                                                                             |
+| `CIv7-TI`<br>*Thematic Intelligence*       | Supervises theme drift detection, coherence validation, and prompt correction via orchestrated module interaction.                                      | Synthesizes outputs of all modules                                                                | All above modules          | Output Layer (Thematic Stability Monitor) | Synthesized                                                                   |
+
+---
+
+### 🧪 Function Signature Schema (Pseudo-API)
+
+```python
+# CIv7-SAT
+get_token_attribution_path(prompt_variant: str) -> List[AttributionPath]
+track_attention_shift(token_set: List[str], context_shift: str) -> Dict[str, ShiftScore]
+
+# CIv7-JCA
+compare_compression_ratio(X_theme: str, X_src: str) -> float
+track_joint_predictive_loss(X_latent: Tensor, X_input: str) -> float
+
+# CIv7-GMC
+compute_bdm_curvature(latent_space: Tensor) -> float
+extract_fim_spectrum(layer_subset: List[int]) -> SpectrumData
+
+# CIv7-MRT
+track_motif_reorg(segment_variants: List[str]) -> MotifGraph
+detect_latent_role_switch(motif_cluster: ClusterID) -> RoleSwitchEvent
+
+# CIv7-TGM
+detect_torsion_instability(layer_slice: Tensor) -> bool
+measure_loop_energy(graph_manifold: Graph) -> float
+
+# CIv7-ACU
+trigger_autopoietic_rewire(signal_profile: Dict[str, float]) -> RewireAction
+detect_feedback_discrepancy(activation_trace: Tensor) -> DiscrepancyAlert
+```
+
+---
+
+### 🕸️ Data/Control Flow Diagram (Textual DAG)
+
+```text
+            ┌──────────────┐
+            │  CIv7-SAT    │
+            └─────┬────────┘
+                  ↓
+            ┌──────────────┐
+            │  CIv7-JCA    │
+            └────┬──┬──────┘
+                 ↓  ↓
+         ┌────────┐ └────────────────┐
+         │CIv7-GMC│                 │
+         └────┬───┘                 ↓
+              ↓               ┌──────────────┐
+              ↓               │  CIv7-MRT    │
+              ↓               └────┬─────────┘
+              ↓                    ↓
+        ┌────────────┐       ┌──────────────┐
+        │  CIv7-TGM  │◄──────┘              │
+        └─────┬──────┘                      │
+              ↓                             ↓
+        ┌──────────────┐             ┌──────────────┐
+        │  CIv7-ACU    │◄────────────┘ Final Output │
+        └──────────────┘             └──────────────┘
+```
+
+---
+
+### 📂 Collaborator Quick-Start Template
+
+```markdown
+# CIv7-TI Module Onboarding: [Module Name]
+
+## 🔧 Objective
+Brief summary of the module’s purpose and problem it detects or corrects.
+
+## 🔍 Key Functions
+- `function_name(input_type) -> output_type`: short description.
+- `...`
+
+## 📎 Dependencies
+- Consumes from: [Other Modules]
+- Feeds into: [Other Modules]
+
+## 🧠 Relevant Background
+Cite key papers, techniques, or prior work.
+
+## 📁 Data Format
+Specify input/output formats, tensor shapes, expected data structures.
+
+## 🧪 Suggested Tests
+Outline how to verify the module is functioning correctly (unit tests, integration examples).
+
+## 🔁 Update Hooks (if any)
+Triggers for dynamic retraining, refactoring, or prompt tuning based on this module’s outputs.
+
+---
+
+_This quick-start template is to be cloned and adapted for each module and provided to collaborators._
+```
+
+---
+
 
 
