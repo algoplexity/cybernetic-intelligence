@@ -112,6 +112,7 @@ Autopoietic Response Path:
 
 📦 Implementation Staging Suggestion
 For practical implementation:
+
 | **Stage**  | **Suggested Modules**  | **Goal**                                                     |
 | ---------- | ---------------------- | ------------------------------------------------------------ |
 | ✅ Stage 1  | `CIv7-GMC`, `CIv7-JCA` | Test for compression failure across summary ↔ source pairs   |
