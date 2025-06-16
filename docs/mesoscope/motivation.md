@@ -1,3 +1,46 @@
+The **Intelligence Mesoscope (IM) Mapping table** in a **method-centric layout**.
+
+This lets each technique/method be foregrounded as a unit of analysis and shows **how it manifests across:**
+
+* the **character** (and their personality/tool),
+* the **substrate** it's rooted in,
+* **how it amplifies intelligence**, and
+* **what role it plays within the mesoscopic system**.
+
+This provides **maximum resolution** for:
+
+* teaching or training (e.g., introducing IM to technical or executive audiences),
+* aligning R\&D components to character metaphors,
+* and creating a modular narrative or implementation scaffold.
+
+---
+
+### 🧠 **Extended Intelligence Mesoscope Mapping – Method-Centric Format**
+
+| Method / Technique                                      | Character (with Personality + Tool)                   | Substrate                | How it Amplifies Intelligence                                                                                      | Role within IM                                                                                                     |
+| ------------------------------------------------------- | ----------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| **Delta-Sign Encoding**                                 | Lina (sensitive, attuned to change) with the **bowl** | Symbolic (ECA)           | Transforms continuous data into event-based symbolic streams; makes temporal dynamics observable and compressible  | Enables fault sensing by making emergent structure legible; used to detect early tremors in pattern coherence      |
+| **Permutation Complexity & Bifurcation Detection**      | Lina with the **bowl**                                | Symbolic (ECA)           | Identifies when symbolic patterns lose predictability or symmetry; reveals hidden thresholds and phase transitions | Detects early regime shifts in systems before classical indicators break down                                      |
+| **Symbolic Compression (MDL, Grammar Inference)**       | Lina with the **bowl**                                | Symbolic (ECA)           | Distills sequences to their generative core; acts as a complexity lens                                             | Measures when the system’s internal structure is becoming more complex or less compressible, signaling instability |
+| **Latent Trajectory Tracing**                           | Toma (reflective, analytical) with the **mirror**     | Latent (LLM)             | Observes how the model’s hidden states evolve over input sequences; tracks shifts in internal understanding        | Detects attention collapse, concept drift, or representational faults inside LLMs                                  |
+| **Attention Flow / Drift Analysis**                     | Toma with the **mirror**                              | Latent (LLM)             | Surfaces misalignments between input salience and model focus; identifies where meaning decays                     | Highlights internal incoherence that precedes failure in reasoning or generation                                   |
+| **Token Transition Predictability**                     | Toma with the **mirror**                              | Latent (LLM)             | Measures entropy in how tokens predict one another in hidden space                                                 | Signals breakdown of semantic stability, especially during ambiguous or novel input                                |
+| **Joint Compression Metrics (Symbolic ↔ Latent)**       | Nia (integrative, clarity-seeking) with the **lens**  | Cross-Substrate          | Quantifies how well symbolic and latent representations align or diverge                                           | Measures mutual intelligibility; signals when hybrid intelligence collapses or a new joint insight is possible     |
+| **Mutual Predictability Curves**                        | Nia with the **lens**                                 | Cross-Substrate          | Tracks when one substrate can no longer predict the other; highlights faults in coordination                       | Reveals bifurcation in system-level understanding; used to triangulate origin of structural fault                  |
+| **Cross-Substrate Alignment Tracking**                  | Nia with the **lens**                                 | Cross-Substrate          | Integrates models' views to track breakdown in shared semantics                                                    | Surfaces “invisible fractures” not seen in one substrate alone                                                     |
+| **Semantic Stability Index / Representation Integrity** | Remy (builder, grounded) with the **map**             | Mesoscopic Layer         | Converts symbolic/latent alignment and entropy measures into actionable metrics                                    | Presents a system-wide integrity score; used for observability, alerting, or intervention                          |
+| **Real-Time IM Dashboard**                              | Remy with the **map**                                 | Mesoscopic Layer         | Provides operational view of structure-function feedback; links measurements to system health                      | Enables cybernetic feedback loop—supporting control, improvement, and learning                                     |
+| **Structural Fault Plane Estimation**                   | Nia + Remy (lens + map in sync)                       | Cross-Substrate → System | Models where misalignment becomes consequential (e.g., affects outputs)                                            | Predicts tipping points in system behavior; helps prevent cascading failures                                       |
+
+---
+
+### 🔄 Interpretation Benefits
+
+This structure allows:
+
+* **Targeted method substitution or extension** (e.g., trying different compression algorithms or attention tracing tools),
+* **Rich metaphor extension** in your story (each method could be a “chapter” of capability the characters discover),
+* **Domain-specific reapplication** (e.g., financial markets, healthcare, policy analytics) by isolating what part of IM applies
 
 ---
 
