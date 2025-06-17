@@ -1,0 +1,98 @@
+Excellent direction — shifting from **CIv7** to **AlgoPlex (Algorithmic Simplexity)** and embracing **Jupyter notebooks** as the structural backbone aligns perfectly with the research-centric, exploratory nature of the project.
+
+Here is the **restructured GitHub repository layout** tailored for **AlgoPlex**, emphasizing notebooks, modular development, and progressive research stability:
+
+---
+
+## 📦 **AlgoPlex GitHub Repository Structure**
+
+```
+algoplex/
+├── README.md
+├── LICENSE
+├── environment.yml               # Conda or pip-based env file
+├── requirements.txt             # Backup for pip users
+├── .github/
+│   └── workflows/
+│       └── run-tests.yml        # GitHub Actions CI
+│
+├── notebooks/                   # 🌟 Primary development units
+│   ├── 0_intro/
+│   │   └── AlgoPlex_Overview.ipynb
+│   ├── 1_motif_extraction/
+│   │   ├── motif_llm_extraction.ipynb
+│   │   └── motif_consolidation.ipynb
+│   ├── 2_mdl_validation/
+│   │   ├── mdl_baseline_bdm.ipynb
+│   │   ├── mdl_lh_ldh_calculations.ipynb
+│   │   └── mdl_analysis_report.ipynb
+│   ├── 3_latent_geometry/
+│   │   ├── latent_projection_umap.ipynb
+│   │   ├── centroid_cluster_analysis.ipynb
+│   │   └── motif_separation_score.ipynb
+│   ├── 4_drift_detection/
+│   │   ├── drift_tracker.ipynb
+│   │   └── drift_summary_report.ipynb
+│   ├── 5_multi_llm/
+│   │   ├── llm_alignment_extract.ipynb
+│   │   ├── motif_robustness_eval.ipynb
+│   ├── 6_topological_analysis/
+│   │   ├── motif_graph_mapper.ipynb
+│   │   └── degeneracy_detector.ipynb
+│   └── 7_synthesis_reporting/
+│       ├── enrichment_pipeline.ipynb
+│       ├── synthetic_generation.ipynb
+│
+├── modules/                     # Shared utilities and modular code
+│   ├── motif_utils.py
+│   ├── mdl_utils.py
+│   ├── projection_utils.py
+│   └── drift_utils.py
+│
+├── tests/                       # Lightweight test coverage for modules
+│   ├── test_motif_utils.py
+│   ├── test_mdl_utils.py
+│   └── test_projection_utils.py
+│
+├── docs/                        # Documentation auto-generated via nbdev or mkdocs
+│   ├── index.md
+│   └── motif_diagnostics.md
+│
+├── publications/                # Cleaned notebook exports for reports/papers
+│   ├── nbconvert_outputs/
+│   │   ├── algo-overview.html
+│   │   ├── drift-analysis.pdf
+│   └── jupyter_book/            # If using JupyterBook
+│
+├── data/                        # Example input/output files for reproducibility
+│   ├── phase1_responses.json
+│   ├── motifs_gemma.json
+│   ├── drift_report_q4.json
+│
+└── algoplex.ipynb               # Master orchestrator notebook
+```
+
+---
+
+## 🔁 Suggested GitHub Practices
+
+| Purpose        | Tool/Format                                                                             |
+| -------------- | --------------------------------------------------------------------------------------- |
+| 📦 Package dev | [`nbdev`](https://nbdev.fast.ai/) (auto-generate modules + docs from notebooks)         |
+| 🧪 CI/CD       | GitHub Actions to test `.py` files in `modules/` and perform `nbval` on key notebooks   |
+| 🧾 Reports     | `nbconvert` or `jupyter nbconvert --to pdf/HTML` into `publications/nbconvert_outputs/` |
+| 🌍 Site        | JupyterBook or Quarto site from `notebooks/` and `docs/` for publishing public views    |
+| 🔬 Experiments | Maintain `experiments/` folder if you want ad-hoc exploratory notebooks                 |
+
+---
+
+## 🧠 Naming Shift Guidelines
+
+Replace `CIv7` references across code, comments, and documentation with:
+
+* `AlgoPlex` as the stable research platform name
+* Specific submodule tags like `AlgoPlex-TI` for thematic intelligence or `AlgoPlex-SBD` for structural break detection
+* Use semantic versioning for module maturity, e.g., `AlgoPlex-TI v1.1`
+
+---
+
