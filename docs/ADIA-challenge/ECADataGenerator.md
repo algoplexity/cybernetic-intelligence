@@ -103,3 +103,44 @@ class ECADataGenerator:
 1.  **Completes the Data Layer:** With `ECADataGenerator`, we have now fully defined the "data processing" capabilities of our `Core Services Library`. We can create data for both pre-training (synthetic) and inference (real-world).
 2.  **Enables Pre-training:** This component is the direct dependency for our `MDLPreTrainer`. The trainer will instantiate this generator to create the dataset on which our `HierarchicalDynamicalAutoencoder` will be trained.
 3.  **Feeds the MDL Loss:** The `(sequence, label)` pairs produced by this generator are precisely what our dual-loss function needs: the `sequence` for the **Reconstruction Loss** and the `label` for the **Classification Loss**.
+
+---
+
+The `ECADataGenerator` design is a direct and conscious fusion of the **methodologies** from both the Burtsev and Zhang papers, even if it doesn't copy their code line-for-line. Here’s the breakdown of its derivation:
+
+---
+
+### **Derivation from Zhang et al. ("Intelligence at the Edge of Chaos")**
+
+Zhang's paper is the **"WHAT"** that guides the *content* of the data we generate. Its core finding dictates the most important part of our `ECADataGenerator`'s configuration: the **curation of rules**.
+
+| Zhang's Finding | Our `ECADataGenerator` Design Choice |
+| :--- | :--- |
+| **"Intelligence emerges at the 'edge of chaos'."** Models trained on Class III (chaotic) and Class IV (complex/Turing-universal) rules showed the best downstream performance. | The `config['rules_to_use']` parameter is **not** a simple `range(256)`. It is a hand-picked, curated list that will be heavily weighted towards rules like `30`, `54`, `90`, `110`, etc. |
+| **"Simple systems (Class I/II) lead to trivial solutions, while chaotic systems (Class III) are akin to training on noise [if too chaotic]."** There is an optimal sweet spot of complexity. | Our curated list will also include some less complex rules, but the *distribution* of samples will be heavily skewed towards the complex-but-structured ones. We are explicitly building the "optimal complexity" dataset that Zhang's paper proves is necessary for learning generalizable intelligence. |
+| **The models learned non-trivial, history-dependent solutions even for memoryless ECA rules.** | The `warmup_steps` parameter in our config is a direct nod to this. We discard the initial, simple evolution of the ECA to ensure our model is trained on the complex, developed "texture" of the system, where longer-range patterns have had time to emerge. |
+
+In essence, Zhang's repository and paper provide the **data curation policy** that is the philosophical heart of our `ECADataGenerator`. We are not just generating random ECA data; we are generating a purpose-built curriculum designed to foster the emergence of "dynamical intelligence."
+
+---
+
+### **Derivation from Burtsev ("Learning ECA with Transformers")**
+
+Burtsev's paper is the **"HOW"** that guides the *format* and *purpose* of the data we generate. His experimental setup directly informs the structure of our output.
+
+| Burtsev's Experimental Setup | Our `ECADataGenerator` Design Choice |
+| :--- | :--- |
+| **The O-SR Task (Orbit-State and Rule):** Burtsev's key finding was that forcing the model to *predict the rule* in addition to the next state led to much better internal representations and long-term planning. | Our generator's primary output is a `(sequence, label)` tuple. The `sequence` corresponds to Burtsev's "Orbit-State," and the `label` (the rule ID) corresponds to his "Rule." We are creating the exact data format needed to implement his most successful training objective (the O-SR task, which we implement as our MDL dual-loss). |
+| **The models were trained to generalize across different Boolean functions (rules).** | Our generator is designed to produce data from a *variety* of rules (`rules_to_use`) and label them explicitly. This allows our `MDLPreTrainer` to train a single model that learns a "latent space" of dynamics, where different rules occupy different regions. This is precisely what's needed for generalization. |
+| **His models operated on sequences of ECA states.** | The `_slice_simulation` method in our generator is responsible for creating these sequences. It takes the 2D `(steps, width)` simulation output and cuts it into `(sequence_length, width)` chunks, which is the "orbit" data format the Transformer model expects. |
+
+In short, Burtsev's repository and paper provide the **data formatting and labeling schema** for our `ECADataGenerator`. We are producing data structured specifically to enable our MDL dual-loss function, which is a direct implementation of the principle behind his successful O-SR task.
+
+### **Conclusion: A Deliberate Synthesis**
+
+The `ECADataGenerator` is not a direct copy of either repository's data loading script. Instead, it is a higher-level, more deliberate component designed as follows:
+
+*   It uses **Zhang's findings** to decide **WHAT** rules to simulate (the complex, "edge of chaos" ones).
+*   It uses **Burtsev's findings** to decide **HOW** to format the output (`(sequence, label)`) to best train a model for generalizable rule inference.
+
+It is a true synthesis, taking the core scientific contribution from each paper to build a single, powerful data generation tool that is superior to a naive implementation for our specific purpose.
