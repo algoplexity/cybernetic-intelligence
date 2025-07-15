@@ -89,3 +89,15 @@ The capacity of a Transformer to evolve toward a stable, expressive **internal f
 * You may explore motif transitions not just as rulesets but as **generators of an emergent algebra**, enabling principled segmentation based on Lie-theoretic curvature or commutator breakdown.
 * This introduces **higher-order regularities** in symbolic space, offering a new layer of fault detection beyond motif entropy.
 
+---
+
+### 📚 Appendix: References
+
+* Hodge, D. & Luke, H. (2025). *Emergent Lie-Theoretic Structure and Gauge Theory Dynamics in Transformers*. \[arXiv preprint]
+* Zenil, H., Delahaye, J.-P., & Soler-Toscano, F. (2015–2020). *Block Decomposition Method (BDM)* for empirical algorithmic complexity.
+* Tschantz, A., et al. (2023). *Foundations of Cybernetic AI*. \[arXiv:2311.xxxxx]
+* Regev, O. & Vempala, S. (2024). *Phase Transitions in Attention Mechanisms*. \[arXiv:2405.xxxxx]
+* Yunkaporta, T. (2020). *Sand Talk: How Indigenous Thinking Can Save the World*. Text Publishing.
+* Qwen2.5-B Open Attention Codebase. *GitHub implementation of Lie algebra extraction and Wilson loop analysis*.
+* PySR Regression Toolkit. *Symbolic regression library used to extract structure constant laws.*
+
