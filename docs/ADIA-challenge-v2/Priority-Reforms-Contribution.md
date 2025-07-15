@@ -1,3 +1,41 @@
+**Executive Briefing**
+**Embedding Culturally Safe and Transparent AI Systems to Support the Closing the Gap Priority Reforms**
+
+**Context**
+To deliver on the Closing the Gap National Agreement, our institutions must ensure that the digital systems we build support transparency, cultural safety, and shared accountability with Aboriginal and Torres Strait Islander communities. Drawing on the CIv13 hypothesis—a novel AI architecture inspired by symmetry and fault-alignment in advanced Transformer models—we propose actionable contributions that directly support each of the four Priority Reforms.
+
+**Summary of Contributions**
+Our framework, CIv13, treats AI systems not as black boxes, but as structured, explainable, and self-monitoring agents. It enables:
+
+* **Self-explaining models** that surface their own decision logic, reducing reliance on opaque automation.
+* **Cultural boundary enforcement** through semantic firewalls that respect access protocols and data custodianship.
+* **Symbolic diagnostics** to detect trust breaks or service drift without intrusive data collection.
+* **Dual substrate design** aligning community-held knowledge with statistical reasoning, enabling real-time co-governance.
+
+**How This Supports the Priority Reforms**
+
+1. **Shared Decision-Making**
+   CIv13 ensures AI systems can detect and respond to misalignment between community knowledge (symbolic) and algorithmic predictions (statistical). This supports **joint authority and system transparency** in digital tools used for policy or service delivery.
+
+2. **Community-Controlled Sector**
+   By detecting symbolic shifts in community narratives, CIv13 enables lightweight monitoring of service sentiment or trust. Community-controlled organisations can use this to **self-audit and inform upstream partners**, without needing large-scale data infrastructure.
+
+3. **Transforming Government Organisations**
+   CIv13 offers a method for AI models to express their internal decision rules using symbolic equations. This enhances **cultural safety and accountability** by enabling **governments to audit and publish the underlying logic** of decision systems.
+
+4. **Shared Access to Data and Information**
+   The dual-layer design enables access control at both the symbolic and statistical level, supporting **data sovereignty and layered sharing agreements**. Communities gain the ability to segment, explain, and protect their own data ecosystems.
+
+**Next Steps**
+We welcome opportunities to explore integration with departmental initiatives in data governance, Indigenous digital capability building, and place-based analytics.
+
+For further technical details, refer to our 2-page contribution document:
+*"Cybernetic Fault-Aware AI Systems for Closing the Gap: A CIv13-Inspired Contribution"* (July 2025).
+
+**Contact**
+For further information or collaboration: \[Your Name / Team], \[Contact details / Program area]
+
+---
 **Title:** Applying the Cybernetic Intelligence (CIv13) Framework to Support Closing the Gap Priority Reforms
 **Prepared for:** Priority Reforms Strategy Advisory Group (PRSAG)
 **Author:** CIv13 Research Contributors
