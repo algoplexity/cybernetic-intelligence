@@ -1,0 +1,490 @@
+# ==============================================================================
+# @title COMPLETE AND CONSOLIDATED SOLUTION
+# This cell contains all code required to run the validation test.
+# ==============================================================================
+
+# ==============================================================================
+# SECTION 1: SETUP AND CONFIGURATION
+# ==============================================================================
+
+# --- Ensure cellpylib is installed ---
+try:
+    import cellpylib as cpl
+except ImportError:
+    print("Installing cellpylib...")
+    import subprocess
+    import sys
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "cellpylib"])
+    import cellpylib as cpl
+    print("✅ cellpylib installed successfully.")
+
+# --- Standard Imports ---
+import os
+import random
+import hashlib
+import typing
+import math
+from pathlib import Path
+from dataclasses import dataclass, field
+import numpy as np
+import pandas as pd
+import joblib
+from tqdm.notebook import tqdm
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset, Dataset
+import itertools
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+import torch.nn.functional as F
+
+# --- Global Configuration Class ---
+@dataclass
+class Config:
+    SEED: int = 42
+    # Data Processing
+    PERMUTATION_DIM: int = 5
+    PERMUTATION_LAG: int = 1
+    SERIES_PROCESSOR_SEQUENCE_LENGTH: int = 256
+    SERIES_PROCESSOR_N_SEQUENCES_PER_SEGMENT: int = 10
+
+    ECA_RULES_TO_USE: list = field(default_factory=lambda: [
+        22, 30, 45, 54, 60, 75, 82, 86, 89, 90, 105, 106, 110,
+        122, 126, 135, 146, 149, 150, 153, 154, 161, 165, 169,
+        182, 193, 195, 225
+    ])
+    
+    ECA_CONFIG: dict = field(init=False, repr=False)
+
+    def __post_init__(self):
+        self.ECA_CONFIG = {
+            'base': self.ECA_RULES_TO_USE,
+            'composite': [
+                {'rules': [30, 110], 'timesteps': [10, 10]},
+                {'rules': [45, 90, 150], 'timesteps': [5, 5, 5]},
+                {'rules': [54, 146], 'timesteps': [15, 5]},
+            ]
+        }
+    
+    ECA_N_SAMPLES_PER_RULE: int = 100
+    ECA_TIMESTEPS: int = 64
+    ECA_WIDTH: int = 64
+    # Model Architecture
+    MODEL_DIMENSIONS: typing.List[int] = field(default_factory=lambda: [128, 256, 512])
+    MODEL_LAYERS_PER_BLOCK: typing.List[int] = field(default_factory=lambda: [2, 2, 2])
+    MODEL_MAX_SEQLENS: typing.List[int] = field(default_factory=lambda: [256, 64, 16])
+    MODEL_N_HEADS: int = 4
+    MODEL_BOTTLENECK_DIM: int = 32
+    # Training Stages
+    PRETRAIN_EPOCHS: int = 5
+    PRETRAIN_LEARNING_RATE: float = 1e-4
+    MDL_RECON_LOSS_WEIGHT: float = 1.0
+    MDL_RULE_LOSS_WEIGHT: float = 0.5
+    EMBEDDING_PRETRAIN_EPOCHS: int = 5
+    EMBEDDING_PRETRAIN_LR: float = 1e-3
+    FINETUNE_EPOCHS: int = 10
+    FINETUNE_HEAD_ONLY_EPOCHS: int = 3
+    FINETUNE_HEAD_LR: float = 1e-3
+    FINETUNE_FULL_LR: float = 5e-5
+    # General
+    BATCH_SIZE: int = 32
+    MODEL_DIR: Path = Path("./production_model")
+
+# --- Seeder Function ---
+def seed_everything(seed_value: int):
+    random.seed(seed_value)
+    os.environ['PYTHONHASHSEED'] = str(seed_value)
+    np.random.seed(seed_value)
+    torch.manual_seed(seed_value)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed_value)
+        torch.cuda.manual_seed_all(seed_value)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+# --- Initial Setup ---
+config = Config()
+seed_everything(config.SEED)
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"Global configuration set. Using device: {device}")
+
+
+# ==============================================================================
+# SECTION 2: CORE LIBRARY - DATA PROCESSING
+# ==============================================================================
+
+class PermutationSymbolizer:
+    def __init__(self, dim, lag):
+        self.d = dim
+        self.tau = lag
+        self.permutations = {tuple(p): i for i, p in enumerate(itertools.permutations(range(dim)))}
+
+    def symbolize_vector(self, vector: np.ndarray) -> int:
+        hasher = hashlib.sha256(vector.tobytes())
+        seed = int.from_bytes(hasher.digest(), 'big') % (2**32)
+        local_rand = np.random.RandomState(seed)
+        noisy_vector = vector + local_rand.uniform(0, 1e-8, size=vector.shape)
+        return self.permutations[tuple(np.argsort(noisy_vector))]
+
+class SeriesProcessor:
+    def __init__(self, symbolizer, seq_len, n_seqs):
+        self.symbolizer = symbolizer
+        self.seq_len = seq_len
+        self.n_seqs = n_seqs
+        self.d = symbolizer.d
+        self.tau = symbolizer.tau
+
+    def _series_to_windows(self, series: np.ndarray):
+        shape = (series.shape[0] - (self.d - 1) * self.tau, self.d)
+        strides = (series.strides[0], series.strides[0] * self.tau)
+        return np.lib.stride_tricks.as_strided(series, shape=shape, strides=strides)
+
+    def process_segment(self, segment: pd.Series) -> typing.List[np.ndarray]:
+        if len(segment) < self.d * self.tau: return []
+        windows = self._series_to_windows(segment.values)
+        symbols = np.apply_along_axis(self.symbolizer.symbolize_vector, 1, windows)
+        if len(symbols) < self.seq_len: return []
+        num_sequences = min(self.n_seqs, len(symbols) - self.seq_len + 1)
+        indices = np.linspace(0, len(symbols) - self.seq_len, num_sequences, dtype=int)
+        return [symbols[i:i+self.seq_len] for i in indices]
+
+class ECADataGenerator:
+    def __init__(self, base, composite, n_samples_per_rule, timesteps, width):
+        self.config = {'base': base, 'composite': composite}
+        self.n_samples_per_rule = n_samples_per_rule
+        self.timesteps = timesteps
+        self.width = width
+
+    def run(self):
+        all_sims, all_labels = [], []
+        rule_map = {rule: i for i, rule in enumerate(self.config['base'])}
+        print(f"Generating synthetic data for {len(self.config['base'])} 'Edge of Chaos' rules...")
+        for rule in tqdm(self.config['base'], desc="Generating Base ECA Data"):
+            for _ in range(self.n_samples_per_rule):
+                init_cond = cpl.init_random(self.width)
+                sim = cpl.evolve(init_cond, timesteps=self.timesteps, apply_rule=lambda n, c, t: cpl.nks_rule(n, rule))
+                all_sims.append(torch.tensor(sim, dtype=torch.float32))
+                all_labels.append(torch.tensor(rule_map[rule], dtype=torch.long))
+        return all_sims, all_labels
+
+# ==============================================================================
+# SECTION 3: CORE LIBRARY - MODEL ARCHITECTURE
+# ==============================================================================
+class CausalTransformer(nn.Module):
+    def __init__(self, dim, n_heads, ff_mult, n_layers):
+        super().__init__()
+        self.layers = nn.ModuleList([
+            nn.TransformerEncoderLayer(d_model=dim, nhead=n_heads, dim_feedforward=dim*ff_mult,
+                                       activation='gelu', batch_first=True, norm_first=True)
+            for _ in range(n_layers)
+        ])
+    def forward(self, x, mask): return self.layers[0](x, mask)
+
+class SimpleTransition(nn.Module):
+    def __init__(self, in_dim, out_dim, seq_len_in, seq_len_out):
+        super().__init__()
+        self.proj = nn.Linear(in_dim, out_dim)
+        self.pool = nn.AdaptiveAvgPool1d(seq_len_out)
+        self.unpool = nn.Upsample(size=seq_len_in, mode='nearest')
+    def down(self, x): return self.pool(x.transpose(1, 2)).transpose(1, 2)
+    def up(self, x): return self.unpool(x.transpose(1, 2)).transpose(1, 2)
+
+class HierarchicalDynamicalEncoder(nn.Module):
+    def __init__(self, dims, layers, n_heads, max_seqlens):
+        super().__init__()
+        self.levels = nn.ModuleList()
+        for i in range(len(dims) - 1):
+            self.levels.append(nn.ModuleDict({
+                'block': CausalTransformer(dims[i], n_heads, 4, layers[i]),
+                'transition': SimpleTransition(dims[i], dims[i+1], max_seqlens[i], max_seqlens[i+1])
+            }))
+    def forward(self, x):
+        residuals = []
+        for level in self.levels:
+            mask = nn.Transformer.generate_square_subsequent_mask(x.shape[1]).to(x.device)
+            x = level['block'](x, mask)
+            residuals.append(x)
+            x = level['transition'].proj(x)
+            x = level['transition'].down(x)
+        return x, residuals
+
+class HierarchicalDynamicalDecoder(nn.Module):
+    def __init__(self, dims, layers, n_heads, max_seqlens):
+        super().__init__()
+        self.levels = nn.ModuleList()
+        for i in range(len(dims) - 1, 0, -1):
+            self.levels.append(nn.ModuleDict({
+                'transition': SimpleTransition(dims[i], dims[i-1], max_seqlens[i-1], max_seqlens[i]),
+                'block': CausalTransformer(dims[i-1], n_heads, 4, layers[i-1])
+            }))
+    def forward(self, x, residuals):
+        for i, level in enumerate(self.levels):
+            x = level['transition'].up(x)
+            x = level['transition'].proj(x)
+            x = x + residuals[-(i+1)]
+            mask = nn.Transformer.generate_square_subsequent_mask(x.shape[1]).to(x.device)
+            x = level['block'](x, mask)
+        return x
+
+class MDL_AU_Net_Autoencoder(nn.Module):
+    def __init__(self, m_config):
+        super().__init__()
+        self.n_symbols = math.factorial(config.PERMUTATION_DIM)
+        self.embedding = nn.Embedding(self.n_symbols, m_config.MODEL_DIMENSIONS[0])
+        self.eca_proj = nn.Linear(config.ECA_WIDTH, m_config.MODEL_DIMENSIONS[0])
+        self.encoder = HierarchicalDynamicalEncoder(m_config.MODEL_DIMENSIONS, m_config.MODEL_LAYERS_PER_BLOCK, m_config.MODEL_N_HEADS, m_config.MODEL_MAX_SEQLENS)
+        self.bottleneck = CausalTransformer(m_config.MODEL_DIMENSIONS[-1], m_config.MODEL_N_HEADS, 4, 1)
+        self.decoder = HierarchicalDynamicalDecoder(m_config.MODEL_DIMENSIONS, m_config.MODEL_LAYERS_PER_BLOCK, m_config.MODEL_N_HEADS, m_config.MODEL_MAX_SEQLENS)
+        self.recon_head = nn.Linear(m_config.MODEL_DIMENSIONS[0], config.ECA_WIDTH)
+        self.rule_head = nn.Linear(m_config.MODEL_DIMENSIONS[-1], len(config.ECA_RULES_TO_USE))
+
+    def pretrain_forward(self, x):
+        x = self.eca_proj(x)
+        fingerprint, residuals = self.encoder(x)
+        fingerprint = self.bottleneck(fingerprint, None)
+        rule_logits = self.rule_head(fingerprint.mean(dim=1))
+        reconstructed = self.decoder(fingerprint, residuals)
+        recon_logits = self.recon_head(reconstructed)
+        return recon_logits, rule_logits
+
+    def encode(self, x):
+        x = self.embedding(x)
+        fingerprint, _ = self.encoder(x)
+        fingerprint = self.bottleneck(fingerprint, None)
+        return fingerprint.mean(dim=1)
+
+class StructuralBreakClassifier(nn.Module):
+    def __init__(self, encoder_model):
+        super().__init__()
+        self.encoder_model = encoder_model
+        self.classifier_head = nn.Sequential(
+            nn.LayerNorm(config.MODEL_BOTTLENECK_DIM * 3),
+            nn.Linear(config.MODEL_BOTTLENECK_DIM * 3, config.MODEL_BOTTLENECK_DIM), nn.GELU(),
+            nn.Linear(config.MODEL_BOTTLENECK_DIM, 1)
+        )
+    def forward(self, before_seqs, after_seqs):
+        fp_before = self.encoder_model.encode(before_seqs)
+        fp_after = self.encoder_model.encode(after_seqs)
+        combined = torch.cat([fp_before, fp_after, torch.abs(fp_before - fp_after)], dim=1)
+        return self.classifier_head(combined)
+
+# ==============================================================================
+# SECTION 4: PIPELINE LOGIC - TRAINING & ARTIFACTS
+# ==============================================================================
+
+class MDLPreTrainer:
+    def __init__(self, model, data_config, model_config):
+        self.model = model
+        self.data_config = data_config
+        self.model_config = model_config
+        self.data_generator = ECADataGenerator(**data_config.ECA_CONFIG, n_samples_per_rule=data_config.ECA_N_SAMPLES_PER_RULE, timesteps=data_config.ECA_TIMESTEPS, width=data_config.ECA_WIDTH)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.model_config.PRETRAIN_LEARNING_RATE)
+        self.recon_loss_fn = nn.BCEWithLogitsLoss()
+        self.rule_loss_fn = nn.CrossEntropyLoss()
+
+    def run(self):
+        print("--- Starting Stage 1: MDL Pre-training ---")
+        sims, labels = self.data_generator.run()
+        dataset = TensorDataset(torch.stack(sims), torch.stack(labels))
+        loader = DataLoader(dataset, batch_size=self.model_config.BATCH_SIZE, shuffle=True)
+        for epoch in range(self.model_config.PRETRAIN_EPOCHS):
+            self.model.train()
+            pbar = tqdm(loader, desc=f"Pre-train Epoch {epoch+1}/{self.model_config.PRETRAIN_EPOCHS}")
+            for batch_sims, batch_labels in pbar:
+                batch_sims, batch_labels = batch_sims.to(device), batch_labels.to(device)
+                self.optimizer.zero_grad()
+                recon_logits, rule_logits = self.model.pretrain_forward(batch_sims)
+                recon_loss = self.recon_loss_fn(recon_logits, batch_sims)
+                rule_loss = self.rule_loss_fn(rule_logits, batch_labels)
+                total_loss = self.model_config.MDL_RECON_LOSS_WEIGHT * recon_loss + self.model_config.MDL_RULE_LOSS_WEIGHT * rule_loss
+                total_loss.backward()
+                self.optimizer.step()
+                pbar.set_postfix(loss=total_loss.item(), recon_L=recon_loss.item(), rule_L=rule_loss.item())
+        print("--- Pre-training Complete ---")
+
+class BreakFinetuningDataset(Dataset):
+    def __init__(self, X, y, processor):
+        self.y = y
+        self.series_processor = processor
+        print("Processing real-world data into symbolic sequences...")
+        self.processed_data = []
+        for i, row in tqdm(X.iterrows(), total=len(X), desc="Processing All Series"):
+            series_data = row['value']
+            break_point = row['period'] - 1
+            before_segment, after_segment = series_data.iloc[:break_point], series_data.iloc[break_point:]
+            before_seqs = self.series_processor.process_segment(before_segment)
+            after_seqs = self.series_processor.process_segment(after_segment)
+            if before_seqs and after_seqs:
+                self.processed_data.append((before_seqs, after_seqs, y.iloc[i]))
+
+    def __len__(self): return len(self.processed_data)
+    def __getitem__(self, idx):
+        before_seqs, after_seqs, label = self.processed_data[idx]
+        before_seq = random.choice(before_seqs)
+        after_seq = random.choice(after_seqs)
+        return torch.tensor(before_seq, dtype=torch.long), torch.tensor(after_seq, dtype=torch.long), torch.tensor(label, dtype=torch.float)
+
+class ArtifactSaver:
+    def __init__(self, model_dir):
+        self.model_dir = Path(model_dir)
+        self.model_dir.mkdir(exist_ok=True)
+
+    def save(self, model, config_to_save):
+        print(f"--- Saving Artifacts to {self.model_dir} ---")
+        torch.save(model.state_dict(), self.model_dir / "final_model.pth")
+        joblib.dump(config_to_save, self.model_dir / "model_config.joblib")
+        print("Artifacts saved.")
+
+# ==============================================================================
+# SECTION 5: PLATFORM ENTRY POINTS
+# ==============================================================================
+
+def train(X, y, model_dir):
+    print(f"Starting training on device: {device}")
+    autoencoder = MDL_AU_Net_Autoencoder(config).to(device)
+    pre_trainer = MDLPreTrainer(autoencoder, config, config)
+    pre_trainer.run()
+    
+    print("--- Starting Stage 2: Fine-tuning ---")
+    symbolizer = PermutationSymbolizer(config.PERMUTATION_DIM, config.PERMUTATION_LAG)
+    processor = SeriesProcessor(symbolizer, config.SERIES_PROCESSOR_SEQUENCE_LENGTH, config.SERIES_PROCESSOR_N_SEQUENCES_PER_SEGMENT)
+    finetune_dataset = BreakFinetuningDataset(X, y, processor)
+    finetune_loader = DataLoader(finetune_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
+    
+    classifier = StructuralBreakClassifier(autoencoder).to(device)
+    optimizer = optim.Adam(classifier.parameters(), lr=config.FINETUNE_FULL_LR)
+    loss_fn = nn.BCEWithLogitsLoss()
+    
+    for epoch in range(config.FINETUNE_EPOCHS):
+        classifier.train()
+        total_loss = 0
+        pbar = tqdm(finetune_loader, desc=f"Fine-tune Epoch {epoch+1}/{config.FINETUNE_EPOCHS}")
+        for before_batch, after_batch, labels_batch in pbar:
+            before_batch, after_batch, labels_batch = before_batch.to(device), after_batch.to(device), labels_batch.to(device)
+            optimizer.zero_grad()
+            logits = classifier(before_batch, after_batch).squeeze()
+            loss = loss_fn(logits, labels_batch)
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item()
+            pbar.set_postfix(loss=loss.item())
+        print(f"Epoch {epoch+1} Average Loss: {total_loss / len(finetune_loader):.6f}")
+
+    print("--- Fine-tuning Complete ---")
+    config_to_save = {k: v for k, v in config.__dict__.items() if k != 'ECA_CONFIG'}
+    saver = ArtifactSaver(model_dir)
+    saver.save(classifier, config_to_save)
+    print("\n" + "="*60 + "\n                TRAINING PIPELINE FINISHED\n" + "="*60)
+
+def infer(X, model_dir):
+    model_dir = Path(model_dir)
+    loaded_config_dict = joblib.load(model_dir / "model_config.joblib")
+    
+    @dataclass
+    class LoadedConfig:
+        pass
+    loaded_config = LoadedConfig()
+    for k, v in loaded_config_dict.items(): setattr(loaded_config, k, v)
+    
+    model = StructuralBreakClassifier(MDL_AU_Net_Autoencoder(loaded_config)).to(device)
+    model.load_state_dict(torch.load(model_dir / "final_model.pth"))
+    model.eval()
+    
+    symbolizer = PermutationSymbolizer(loaded_config.PERMUTATION_DIM, loaded_config.PERMUTATION_LAG)
+    processor = SeriesProcessor(symbolizer, loaded_config.SERIES_PROCESSOR_SEQUENCE_LENGTH, loaded_config.SERIES_PROCESSOR_N_SEQUENCES_PER_SEGMENT)
+    
+    print("--- Starting Inference ---")
+    yield {"health": "ok"} # Health check
+    
+    for df in X:
+        series_data = df['value']
+        break_point = df['period'].iloc[0] - 1
+        before_segment, after_segment = series_data.iloc[:break_point], series_data.iloc[break_point:]
+        before_seqs = processor.process_segment(before_segment)
+        after_seqs = processor.process_segment(after_segment)
+        
+        if not before_seqs or not after_seqs:
+            yield 0.5; continue
+        
+        with torch.no_grad():
+            before_batch = torch.tensor(np.array(before_seqs), dtype=torch.long).to(device)
+            after_batch = torch.tensor(np.array(after_seqs), dtype=torch.long).to(device)
+            logits = model(before_batch, after_batch)
+            score = torch.sigmoid(logits).mean().item()
+        yield score
+
+# ==============================================================================
+# SECTION 6: TEST EXECUTION BLOCK
+# ==============================================================================
+if __name__ == '__main__':
+    # --- Create a standard config instance and then override it ---
+    config = Config()
+
+    print("--- Modifying main Config for a validation run. ---")
+    config.ECA_N_SAMPLES_PER_RULE = 20
+    config.PRETRAIN_EPOCHS = 3
+    config.EMBEDDING_PRETRAIN_EPOCHS = 3
+    config.FINETUNE_HEAD_ONLY_EPOCHS = 3
+    config.FINETUNE_EPOCHS = 5
+    config.BATCH_SIZE = 16
+
+    print("\n" + "="*50)
+    print("      RUNNING TIER 3 VALIDATION (Platform Compliant)")
+    print("="*50)
+
+    seed_everything(config.SEED)
+
+    # --- Create Mock Data & Split ---
+    def create_mock_series_data(series_id, has_break=False, length=500, break_point=250):
+        t = np.linspace(0, 10, length)
+        noise = np.random.randn(length) * 0.1
+        series_values = np.sin(t * 2 * np.pi) + noise
+        if has_break:
+            series_values[break_point:] = np.cos(t[break_point:] * 5 * np.pi) * 1.5 + noise[break_point:]
+        data = []
+        for time_step in range(length):
+            data.append({'id': series_id, 'time': time_step, 'value': series_values[time_step]})
+        return pd.DataFrame(data)
+
+    mock_X_list, mock_y_list = [], []
+    for i in range(100):
+        has_break = i % 2 == 0
+        df = create_mock_series_data(i, has_break=has_break)
+        df['period'] = 251
+        X_df = df[['value', 'period']]
+        y_df = pd.Series([1 if has_break else 0], index=[i])
+        mock_X_list.append(X_df)
+        mock_y_list.append(y_df)
+    
+    X_all = pd.concat(mock_X_list, keys=range(100), names=['id', 'time'])
+    y_all = pd.concat(mock_y_list)
+
+    train_ids, test_ids = train_test_split(y_all.index, test_size=0.3, random_state=config.SEED, stratify=y_all)
+
+    X_train = X_all[X_all.index.get_level_values('id').isin(train_ids)]
+    y_train = y_all[y_all.index.isin(train_ids)]
+    X_test = X_all[X_all.index.get_level_values('id').isin(test_ids)]
+    y_test = y_all[y_all.index.isin(test_ids)]
+    print(f"Training samples: {len(train_ids)}, Testing samples: {len(test_ids)}")
+
+    # --- Run Training & Inference ---
+    try:
+        model_dir = Path("./final_model_validation")
+        train(X_train, y_train, str(model_dir))
+        
+        test_iterable = [X_test.loc[test_id] for test_id in test_ids]
+        predictions = list(infer(test_iterable, str(model_dir)))
+        if isinstance(predictions[0], dict) and "health" in predictions[0]:
+            predictions.pop(0)
+
+        y_test_values = y_test.values
+        auc_score = roc_auc_score(y_test_values, predictions)
+        print("\n" + "="*20 + " FINAL RESULT " + "="*20)
+        print(f"📈 Final Out-of-Sample ROC AUC Score: {auc_score:.4f}")
+        print("="*54)
+
+    except Exception as e:
+        print(f"\nERROR during full validation run: {e}")
+        import traceback
+        traceback.print_exc()
