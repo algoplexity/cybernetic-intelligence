@@ -1,0 +1,194 @@
+### **Explanation of Data Flow: Stage 1**
+
+**Title:** Pre-training the "Physics Engine"
+**Purpose:** To teach the core model about the fundamental rules of how complex systems evolve, using a perfect, controlled "toy universe" (ECAs).
+
+```
+[ECADataGenerator]  -- (Generates) -->  [Batch of 2D Float Tensors (ECA Orbits)]
+       |                                                    |
+       |                                                    V
+       +----------------------------------> [ MDL_AU_Net_Autoencoder ] <--------------------------------+
+                                              |         (TRAINING)         |                              |
+                                              |                            |                              |
+      [eca_input_proj] --(Projects)-->  [Core U-Net Body (Encoder/Decoder)] --(Generates)--> [Recon & Rule Logits]
+      (ACTIVE / LEARNING)                 (ACTIVE / LEARNING)                                   |
+                                                                                                  |
+      [embedding_head]                                                                          V
+      (INACTIVE / FROZEN)                                                                    [Dual MDL Loss] --(Backpropagates to)-->+
+```
+
+**Step-by-Step Data Flow:**
+
+1.  **Generation:** The `ECADataGenerator` runs first. It simulates various "edge of chaos" Elementary Cellular Automata (ECAs) and produces two things:
+    *   A batch of 2D tensors of floating-point numbers (0.0s and 1.0s). Each tensor is a "spacetime image" of an ECA's evolution, with shape `(timesteps, width)`.
+    *   A corresponding batch of integer labels, where each label identifies the specific ECA rule (e.g., Rule 30, Rule 110) that generated the orbit.
+
+2.  **Input to Model:** This batch of float tensors enters the `MDL_AU_Net_Autoencoder`.
+
+3.  **Input Projection:** The data first hits the `eca_input_proj` layer. This is a simple linear layer whose only job is to change the vector dimension from the ECA's `width` to the model's internal `d_model` (e.g., from 64 to 128). This is an **active, learning** component.
+
+4.  **Core U-Net Processing:** The projected data then flows through the main `Core U-Net Body` (the `HierarchicalDynamicalEncoder` and `Decoder`). This is the main engine where all the heavy lifting happens. These layers are **active and learning**.
+
+5.  **Output Generation:** The U-Net produces two sets of outputs:
+    *   `Recon Logits`: The reconstructed "spacetime image" from the decoder.
+    *   `Rule Logits`: The model's guess about which ECA rule generated the input, derived from the compressed "fingerprint" in the bottleneck.
+
+6.  **Loss Calculation:** The `Dual MDL Loss` function compares the model's outputs to the ground truth:
+    *   It compares the `Recon Logits` to the original input tensor.
+    *   It compares the `Rule Logits` to the true rule labels from the data generator.
+
+7.  **Backpropagation:** The calculated total loss is used to compute gradients. These gradients flow backward and update the weights of all **active** components: the `eca_input_proj` and the entire `Core U-Net Body`. The `embedding_head` is untouched.
+
+---
+
+### **Explanation of Data Flow: Stage 2**
+
+**Title:** Training the "Translator"
+**Purpose:** To teach the `embedding_head` how to convert our symbolic representation of market data into the "language" that the now-frozen "Physics Engine" can understand. We use simple, clean `sin/cos` data for this.
+
+```
+[SeriesProcessor] --(Processes)--> [Batch of Integer Symbol Sequences (`sin/cos`)]
+       |                                                    |
+       |                                                    V
+       +----------------------------> [ StructuralBreakClassifier ] <--------------------------+
+                                           |      (TRAINING)      |                              |
+                                           |                      |                              |
+      [MDL_AU_Net_Autoencoder] ------------+                      +------> [Break/No-Break Logit]
+      |                                                           |             |
+      |   [eca_input_proj]                                        |             |
+      |   (INACTIVE / FROZEN)                                     |             |
+      |                                                           |             V
+      |   [embedding_head] --(Embeds)--> [Core U-Net Body]         +------> [Classifier Head]
+      |   (ACTIVE / LEARNING)             (INACTIVE / FROZEN)                   (ACTIVE / LEARNING)
+      |                                                                         |
+      +-------------------------------------------------------------------------+----<--(Backpropagates to)-- [BCE Loss]
+```
+
+**Step-by-Step Data Flow:**
+
+1.  **Generation:** We first create mock `(before, after)` time series pairs using simple `sin` and `cos` functions. We know which pairs represent a "break."
+2.  **Processing:** The `SeriesProcessor` takes these mock time series and converts them into batches of **integer symbol sequences** using the `PermutationSymbolizer`.
+3.  **Input to Model:** These batches of integer sequences (one for `before`, one for `after`) enter the `StructuralBreakClassifier`.
+4.  **Embedding:** The data first hits the `embedding_head`. This layer acts like a lookup table, converting each integer symbol into a dense vector. This component is now **active and learning**. The `eca_input_proj` is completely bypassed.
+5.  **Core U-Net Processing (Frozen):** The embedded vectors now flow through the **pre-trained and frozen** `Core U-Net Body`. The encoder produces a fingerprint for the `before` sequence and another for the `after` sequence. No learning happens here; it's just used for inference.
+6.  **Final Classification:** The two fingerprints are passed to the `Classifier Head`, which is a new, small neural network. This head compares the fingerprints and outputs a single logit representing the probability of a break. This head is **active and learning**.
+7.  **Loss Calculation:** The `BCE Loss` function compares the model's output logit to the known true label (`True` or `False`) for the `sin/cos` pair.
+8.  **Backpropagation:** The loss is backpropagated. Because the `Core U-Net Body` is frozen, gradients only flow back to update the weights of the two **active** components: the `embedding_head` and the `Classifier Head`.
+
+---
+
+### **Explanation of Data Flow: Stage 3**
+
+**Title:** Fine-tuning for Nuance
+**Purpose:** To take the fully assembled system (with its trained "Physics Engine" and "Translator") and fine-tune only the final "judgement" layer on the complex, noisy patterns of real market data.
+
+```
+[SeriesProcessor] --(Processes)--> [Batch of Integer Symbol Sequences (Real Market Data)]
+       |                                                    |
+       |                                                    V
+       +----------------------------> [ StructuralBreakClassifier ] <--------------------------+
+                                           |      (TRAINING)      |                              |
+                                           |                      |                              |
+      [MDL_AU_Net_Autoencoder] ------------+                      +------> [Break/No-Break Logit]
+      |                                                           |             |
+      |   [eca_input_proj]                                        |             |
+      |   (INACTIVE / FROZEN)                                     |             |
+      |                                                           |             V
+      |   [embedding_head] --(Embeds)--> [Core U-Net Body]         +------> [Classifier Head]
+      |   (INACTIVE / FROZEN)             (INACTIVE / FROZEN)                   (ACTIVE / LEARNING)
+      |                                                                         |
+      +-------------------------------------------------------------------------+----<--(Backpropagates to)-- [BCE Loss]
+```
+
+**Step-by-Step Data Flow:**
+
+This flow is nearly identical to Stage 2, with two crucial differences in the data source and which components are learning.
+
+1.  **Processing:** The `SeriesProcessor` now takes the **real `X_train` data** and converts it into batches of integer symbol sequences.
+2.  **Input to Model:** The real data sequences enter the `StructuralBreakClassifier`.
+3.  **Embedding (Frozen):** The data passes through the now **trained and frozen** `embedding_head`.
+4.  **Core U-Net Processing (Frozen):** The data passes through the **trained and frozen** `Core U-Net Body` to generate fingerprints.
+5.  **Final Classification:** The fingerprints are passed to the `Classifier Head`, which is the **only active, learning** component in this stage.
+6.  **Loss Calculation:** The `BCE Loss` function compares the output logit to the true label from `y_train`.
+7.  **Backpropagation:** The loss is backpropagated, but since almost everything is frozen, gradients only update the weights of the **`Classifier Head`**. This allows the model to adjust its final decision-making boundary based on the complex patterns in the real data, without corrupting the general knowledge learned in the previous stages.
+
+
+===================================================================================================
+ Stage 1: Pre-training the "Physics Engine" (on Synthetic ECA Data)
+===================================================================================================
+
+[ECADataGenerator]  -- (Generates) -->  [Batch of 2D Float Tensors (ECA Orbits)]
+       |                                                    |
+       |                                                    V
+       +----------------------------------> [ MDL_AU_Net_Autoencoder ] <--------------------------------+
+                                              |         (TRAINING)         |                              |
+                                              |                            |                              |
+      [eca_input_proj] --(Projects)-->  [Core U-Net Body (Encoder/Decoder)] --(Generates)--> [Recon & Rule Logits]
+      (ACTIVE / LEARNING)                 (ACTIVE / LEARNING)                                   |
+                                                                                                  |
+      [embedding_head]                                                                          V
+      (INACTIVE / FROZEN)                                                                    [Dual MDL Loss] --(Backpropagates to)-->+
+
+---------------------------------------------------------------------------------------------------
+| Outcome of Stage 1:                                                                             |
+|   - `Core U-Net Body` has learned the general "physics" of dynamical systems.                   |
+|   - `eca_input_proj` has learned to translate raw ECA data for the Core Body.                     |
+|   - `embedding_head` is still randomly initialized and untrained.                               |
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+ Stage 2: Training the "Translator" (on Simple Mock `sin/cos` Data)
+===================================================================================================
+
+[SeriesProcessor] --(Processes)--> [Batch of Integer Symbol Sequences (`sin/cos`)]
+       |                                                    |
+       |                                                    V
+       +----------------------------> [ StructuralBreakClassifier ] <--------------------------+
+                                           |      (TRAINING)      |                              |
+                                           |                      |                              |
+      [MDL_AU_Net_Autoencoder] ------------+                      +------> [Break/No-Break Logit]
+      |                                                           |             |
+      |   [eca_input_proj]                                        |             |
+      |   (INACTIVE / FROZEN)                                     |             |
+      |                                                           |             V
+      |   [embedding_head] --(Embeds)--> [Core U-Net Body]         +------> [Classifier Head]
+      |   (ACTIVE / LEARNING)             (INACTIVE / FROZEN)                   (ACTIVE / LEARNING)
+      |                                                                         |
+      +-------------------------------------------------------------------------+----<--(Backpropagates to)-- [BCE Loss]
+
+---------------------------------------------------------------------------------------------------
+| Outcome of Stage 2:                                                                             |
+|   - `embedding_head` has learned to translate simple symbolic patterns into the                |
+|     "language" the Core U-Net Body understands.                                                 |
+|   - `Classifier Head` has learned a basic classification rule from the simple data.             |
+---------------------------------------------------------------------------------------------------
+
+
+===================================================================================================
+ Stage 3: Fine-tuning for Nuance (on Real `X_train` Data)
+===================================================================================================
+
+[SeriesProcessor] --(Processes)--> [Batch of Integer Symbol Sequences (Real Market Data)]
+       |                                                    |
+       |                                                    V
+       +----------------------------> [ StructuralBreakClassifier ] <--------------------------+
+                                           |      (TRAINING)      |                              |
+                                           |                      |                              |
+      [MDL_AU_Net_Autoencoder] ------------+                      +------> [Break/No-Break Logit]
+      |                                                           |             |
+      |   [eca_input_proj]                                        |             |
+      |   (INACTIVE / FROZEN)                                     |             |
+      |                                                           |             V
+      |   [embedding_head] --(Embeds)--> [Core U-Net Body]         +------> [Classifier Head]
+      |   (INACTIVE / FROZEN)             (INACTIVE / FROZEN)                   (ACTIVE / LEARNING)
+      |                                                                         |
+      +-------------------------------------------------------------------------+----<--(Backpropagates to)-- [BCE Loss]
+
+---------------------------------------------------------------------------------------------------
+| Outcome of Stage 3:                                                                             |
+|   - `Classifier Head` is now fine-tuned on the complex, noisy patterns of real market data.     |
+|   - The entire `StructuralBreakClassifier` is now the final, ready-to-use model artifact.       |
+---------------------------------------------------------------------------------------------------
+
+---
