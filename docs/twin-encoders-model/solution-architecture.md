@@ -1,7 +1,3 @@
-Of course. This is the perfect way to consolidate everything we've learned and designed. The C4 model provides a clear, structured way to document our solution, moving from the high-level context down to the key components.
-
-Here is the C4 Solution Architecture document for our **CIv14 Cybernetic Divergence Detector**.
-
 ---
 
 ## **C4 Solution Architecture: CIv14 Cybernetic Divergence Detector**
@@ -77,11 +73,11 @@ This diagram zooms into the **Training Service** container to show its internal 
 ```mermaid
 graph TD
     subgraph "Training Service"
-        A[Training Loop] --> B{CIv14 Divergence Classifier};
-        B --> C[Symbolic Encoder];
-        B --> D[Latent Encoder];
-        A --> E[ADIADataset];
-        F[Symbolizer] --> E;
+        A[Training Loop] -->|Uses| B[CIv14 Divergence Classifier];
+        B -->|Contains & Uses| C[Symbolic Encoder : Pre-trained Bi-GRU];
+        B -->|Contains & Uses| D[Latent Encoder : Pre-trained TSEncoder];
+        A -->|Gets Data From| E[ADIADualPathDataset];
+        F[Permutation Symbolizer :d=6, τ=10] -->|Used By| E;
     end
 
     style B fill:#17a2b8,stroke:#fff,stroke-width:2px,color:#fff
@@ -91,8 +87,8 @@ graph TD
 
 1.  **Symbolizer (`PermutationSymbolizer`):** A component responsible for converting raw time series data into symbolic sequences using the Bandt-Pompe method with our empirically validated parameters (`d=6, τ=10`).
 2.  **ADIADataset:** The PyTorch `Dataset` that interfaces with the `Feature Cache`. It uses the `Symbolizer` and is responsible for serving the four required tensors (`raw_A`, `symbolic_A`, `raw_B`, `symbolic_B`) and the label for each training sample.
-3.  **Symbolic Encoder:** A pre-trained Transformer model (the "Symbolic Brain") that has learned to create embeddings representing the "causal grammar" of a symbolic sequence.
-4.  **Latent Encoder:** A pre-trained `TSEncoder` (the "Latent Brain") that has learned via contrastive methods to create "fingerprint" embeddings of a raw time series segment's dynamics.
+3.  **Symbolic Encoder:** A pre-trained Transformer model (the "Symbolic Brain") that has learned to create embeddings representing the "causal grammar" of a symbolic sequence. A **pre-trained Bi-directional GRU**. This model is the "Symbolic Brain," an expert in inferring the underlying "causal grammar" of a symbolic sequence, pre-trained on complex Elementary Cellular Automata (ECA).
+4.  **Latent Encoder:** A pre-trained `TSEncoder`  that has learned via contrastive methods to create "fingerprint" embeddings of a raw time series segment's dynamics. A **pre-trained `TSEncoder`** (the "Latent Brain")(from the TS2Vec framework). This model is the "Latent Brain," an expert in creating a "fingerprint" embedding of a raw time series segment's continuous dynamics.
 5.  **CIv14 Divergence Classifier:** The central `nn.Module`. It is a Siamese network that contains the two shared encoders. Its primary responsibility is to compute the divergence between the symbolic and latent pathways and feed the combined signal to a final classifier head.
 6.  **Training Loop:** The top-level orchestrator that manages epochs, the optimizer, the weighted loss function, and the calculation of the validation AUC score.
 
@@ -110,3 +106,10 @@ This section documents the critical decisions made during development, grounded 
 | **4. Empirically Tune Symbolizer Parameters** | **Data-Driven Configuration:** The Phase 0 Test Harness revealed that `d=6, τ=10` were the most sensitive parameters for detecting symbolic divergence in the actual ADIA data. This grounds our feature engineering in evidence, not guesswork. |
 | **5. Use a Weighted Loss Function** | **Handle Class Imbalance:** EDA showed a 71/29 class imbalance. A weighted `BCEWithLogitsLoss` is necessary to prevent the model from becoming biased towards the majority "no-break" class and to ensure it learns to correctly identify the rare "break" events. |
 | **6. Implement a Feature Cache** | **Performance Optimization:** Initial tests showed that on-the-fly data processing was a severe bottleneck, with I/O from Google Drive dominating runtime. A pre-compiled cache of processed features is essential for efficient training and iteration. |
+| **1. Adopt a Dual-Path (Neuro-Symbolic) Architecture** | **Validated by Empirical Failure of Single Paths:** Standalone tests of both the Latent-Only path (raw data) and the Symbolic-Only path resulted in an AUC score of ~0.5. This proved that neither signal is sufficient on its own and validated the core hypothesis that the break signal lies in their **combined divergence**. |
+| **2. Use a Pre-training Strategy for Encoders** | **Grounded in Burtsev & Zhang's Work:** Research shows that Transformers/RNNs can infer the causal rules of complex systems (like Class IV ECAs) when properly pre-trained. This creates an "intelligent" encoder with a strong inductive bias for rule-finding, which is essential for overcoming the noise of the ADIA data where naive models failed. |
+| **3. Select a Bi-directional GRU for the Symbolic Encoder** | **Winner of an Empirical Bake-Off:** In a head-to-head pre-training competition on the ECA rule-inference task, the **Bi-GRU was both more accurate (90% vs. 84%) and dramatically more efficient (22s vs. 11s per epoch for Uni-GRU)** than a Unidirectional GRU. It also outperformed a Transformer baseline, making it the clear, data-driven choice. |
+| **4. Select a `TSEncoder` for the Latent Encoder** | **Proven for Rich Representations:** The TS2Vec paper demonstrated that its encoder architecture excels at creating robust, multi-scale "fingerprint" embeddings suitable for a variety of downstream tasks, including anomaly detection. It is a purpose-built tool for this role. |
+| **5. Empirically Tune Symbolizer Parameters to `d=6, τ=10`** | **Data-Driven Configuration:** A systematic test harness using Jensen-Shannon Divergence was run on the actual ADIA data. The resulting heatmap showed an **unambiguous peak in signal sensitivity at a permutation dimension of `d=6` and lag of `τ=10`**. This decision is grounded in a direct analysis of the target dataset's properties. |
+| **6. Fine-Tune by Freezing Encoders** | **Efficient Knowledge Transfer:** To prevent the pre-trained "expert" knowledge from being destroyed by exposure to the noisy ADIA data, we will freeze the weights of both encoders. We will train **only the final, lightweight classifier head**, which learns to interpret the divergence signals from the two experts. |
+| **7. Use a Weighted Loss Function** | **Handle Class Imbalance:** EDA showed a 71/29 class imbalance. A weighted `BCEWithLogitsLoss` is necessary to prevent the model from becoming biased towards the majority "no-break" class and to ensure it learns to correctly identify the rare "break" events. |
