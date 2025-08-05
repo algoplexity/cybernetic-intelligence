@@ -1,10 +1,79 @@
-This is the complete picture. With this final set of screenshots, my understanding of the BRAIN Labs platform and its intended workflow is comprehensive. We have moved from basic discovery to expert-level data handling and are now fully equipped to formulate an intelligent, effective alpha expression.
 
-The new examples provide the final, most critical lessons: how to handle real-world data imperfections like inconsistent units, sparse data, and extreme outliers.
 
-### The Complete, Intelligent AI Workflow for Alpha Creation
+The `how_to_use_ACE.txt` notebook and its associated documentation reveal that the platform provides **two distinct but complementary sets of APIs**:
 
-Here is the final, multi-phase strategy that synthesizes every lesson we have learned. This is the exact process our AI must follow.
+1.  **The `brain` Client:** A low-level, interactive toolkit for discovery and deep analysis.
+2.  **The `ace_lib` & `helpful_functions`:** A high-level, automated toolkit for systematic generation, bulk simulation, and submission.
+
+Think of it as having two toolboxes:
+
+---
+
+### Toolbox 1: The `brain` Client (The "Explorer & Scientist's Kit")
+
+*   **Purpose:** To perform the deep, investigative work on a *single idea*. This is what we have been using so far.
+*   **Key Functions:**
+    *   `brain.get_data_categories()`, `brain.get_data_sets()`, `brain.get_data_fields()` for metadata discovery.
+    *   `brain.get_data_frame()` to download raw data for profiling.
+    *   `visualizations.plot_...()` to understand the quirks of a specific field.
+    *   `brain.simulate_alpha()` to run a quick test on a single expression.
+*   **When to Use:** During the initial "Analysis & Profiling" phase of our plan. It's for answering questions like, "What does the `volume` data *really* look like?" or "Does `returns` have outliers?"
+
+### Toolbox 2: The ACE Library (The "Alpha Factory & Manager")
+
+*   **Purpose:** To take a promising alpha *template* and efficiently generate, test, improve, and submit many variations.
+*   **Key Functions:**
+    *   `hf.get_datasets()` and `hf.get_datafields()` to programmatically select data based on quality metrics (e.g., `coverage > 0.8`).
+    *   `ace.generate_alpha()` to package an expression with its simulation settings.
+    *   `ace.simulate_alpha_list_multi()` to run **dozens of simulations concurrently**.
+    *   `hf.prettify_result()` and `hf.concat_is_tests()` to analyze and compare the results of all simulations at once.
+    *   `ace.submit_alpha()` to formally submit a finished, validated alpha.
+*   **When to Use:** During the "Formulation, Simulation, & Iteration" phases of our plan, especially when we want to test multiple variations of an idea.
+
+---
+
+### The New, Integrated Workflow
+
+This new information doesn't invalidate our previous plan; it supercharges it. The `ace_lib` automates the final, large-scale steps.
+
+Here is the updated, definitive plan that integrates both toolkits:
+
+**Phase 1: Deep Dive with the `brain` Client (Unchanged)**
+*   Use the `brain` client and `visualizations` to deeply analyze our candidate fields (`returns`, `volume`). This gives us the core insights for our "intelligent" preprocessing logic (e.g., handle outliers, normalize volume).
+
+**Phase 2: Systematic Generation with `ace_lib` (The New Step)**
+*   Instead of writing just one "intelligent" alpha, we will generate a list of expressions to test several variations of the idea.
+    *   **Example:** We can test different lookback windows.
+    ```python
+    # Our core idea for a clean signal
+    preprocessing_logic = """
+    r_clean = (abs(returns) > 0.5 ? nan : returns);
+    vol_surge = (volume / ts_mean(volume, 20));
+    vol_surge_clean = (vol_surge > 10 ? 10 : (vol_surge == inf ? nan : vol_surge));
+    """
+    
+    # Generate variations with different momentum periods
+    expression_list = []
+    for period in [5, 10, 20, 40]:
+        expression = f"""
+        {preprocessing_logic}
+        raw_alpha = ts_rank(r_clean, {period}) * ts_rank(vol_surge_clean, {period});
+        group_rank(raw_alpha, subindustry)
+        """
+        expression_list.append(expression)
+    ```
+
+**Phase 3: Bulk Simulation & Analysis with `ace_lib`**
+*   **Generate Alpha Objects:** Use `ace.generate_alpha()` on our `expression_list`.
+*   **Simulate in Parallel:** Use `ace.simulate_alpha_list_multi()` to run all simulations at once.
+*   **Analyze Results:** Use `hf.prettify_result()` to get a summary DataFrame. We can then easily sort by `fitness` or `sharpe` to find the best-performing variation.
+
+**Phase 4: Improvement & Submission with `ace_lib`**
+*   **Select the Winner:** Pick the alpha with the best metrics from the summary table.
+*   **Check Submission Readiness:** Use `hf.concat_is_tests()` and other checks (`check_self_corr_test`) to ensure the winning alpha passes all the platform's quality gates.
+*   **Submit:** Use `ace.submit_alpha()` with the winning `alpha_id`.
+
+This is the true power of the platform. We use the `brain` client for surgical analysis and insight, and then we use the `ace_lib` as a powerful factory to scale up our testing and find the optimal version of that insight.
 
 ---
 
