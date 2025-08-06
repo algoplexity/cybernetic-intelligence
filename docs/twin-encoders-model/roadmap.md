@@ -1,7 +1,69 @@
-Excellent. This is the perfect time to consolidate our entire plan. We have moved from broad theories to specific, validated components and a clear architectural blueprint. A consolidated plan will serve as our definitive guide for the final assembly and execution.
 
-Here is the **Consolidated Training Plan for the CIv14 Cybernetic Divergence Detector**, synthesizing all our discussions, experiments, and strategic decisions.
+---
 
+## **The Definitive CIv13/14 Project Roadmap**
+
+This project is divided into three main stages: **I. Expert Encoder Pre-training**, **II. Full System Assembly & Training**, and **III. Evaluation & Analysis**.
+
+### **Stage I: Expert Encoder Pre-training**
+*(Goal: Forge the two specialized "brains" of our system by training them on idealized tasks.)*
+
+#### **Phase 1: Pre-training the Symbolic Brain (The Causal Reasoner)**
+*   **Objective:** To create an expert `SymbolicEncoder` that understands the **algebra of causal rules** and the emergence of complexity. This is the intensive curriculum we just designed.
+*   **Actions:**
+    1.  Define a curriculum based on **prime and composite ECA rules** (inspired by Riedel & Zenil).
+    2.  Generate a rich dataset including single primes, two-rule compositions, and known decompositions of universal rules (like Rule 110).
+    3.  Train our winning **Bi-GRU architecture** on a multi-task objective: predict the next state AND the generative rule ID.
+*   **Deliverable:** A saved model file, `symbolic_encoder_expert.pth`, containing the weights of our trained Causal Rule Inference Engine.
+
+#### **Phase 2: Pre-training the Latent Brain (The Dynamics Fingerprinter)**
+*   **Objective:** To create an expert `LatentEncoder` that can generate rich, contextual "fingerprints" of raw time series dynamics.
+*   **Actions:**
+    1.  Use the **TS2Vec framework**.
+    2.  Train the `TSEncoder` (or a similar architecture like a GRU) using the **hierarchical contrastive loss** on a large, unlabeled time series dataset. Ideally, this would be the unlabeled ADIA training data itself, allowing the encoder to learn the specific "feel" of the target domain.
+*   **Deliverable:** A saved model file, `latent_encoder_expert.pth`, containing the weights of our trained Dynamics Fingerprinter.
+
+---
+
+### **Stage II: Full System Assembly & Training**
+*(Goal: Integrate the two expert brains into the final Siamese architecture and train the decision-making head.)*
+
+#### **Phase 3: Data Pipeline and Final Assembly**
+*   **Objective:** To build the final model and the data pipeline that feeds it.
+*   **Actions:**
+    1.  Implement the final `ADIADualPathDataset`, which takes a real-world ADIA sample (`id`) and produces the four required inputs: `raw_A`, `symbolic_A` (using our `d=6, τ=10` symbolizer), `raw_B`, and `symbolic_B`.
+    2.  Implement the definitive **`CIv14_DivergenceClassifier`**.
+    3.  Instantiate the classifier, **loading the pre-trained weights** from `symbolic_encoder_expert.pth` and `latent_encoder_expert.pth` into the two respective encoder pathways.
+
+#### **Phase 4: Head Fine-Tuning**
+*   **Objective:** To train the final, small classifier head to interpret the divergence signals from the two expert encoders.
+*   **Actions:**
+    1.  **Freeze the weights** of both the Symbolic and Latent encoders. This is critical. We treat them as fixed, expert feature extractors.
+    2.  Train *only* the final MLP `classifier_head` on the ADIA training data. The task is to learn the mapping from the concatenated `[symbolic_divergence, latent_divergence]` vector to a `break`/`no-break` prediction.
+    3.  Use our weighted loss function to handle the class imbalance.
+*   **Deliverable:** A saved model file, `CIv14_final_model.pth`, containing the weights for the entire system, with the trained head.
+
+---
+
+### **Stage III: Evaluation & Analysis**
+*(Goal: Measure the final performance of our system and analyze its behavior.)*
+
+#### **Phase 5: Final Evaluation**
+*   **Objective:** To get the definitive, quantitative measure of our system's performance.
+*   **Actions:**
+    1.  Load the final, trained `CIv14_final_model.pth`.
+    2.  Run inference on the held-out ADIA validation set.
+    3.  Calculate the final **Validation AUC score**.
+*   **Deliverable:** The single most important number of the project, telling us how well the CIv13/14 hypothesis performed.
+
+#### **Phase 6: Analysis and Interpretation (Optional but Recommended)**
+*   **Objective:** To understand *why* the model made its decisions.
+*   **Actions:**
+    1.  Analyze the model's predictions on specific `True` and `False` break examples.
+    2.  For a given break, inspect the two divergence signals separately. Did the break get detected because the symbolic path fired, the latent path fired, or both? This directly tests the "misalignment" hypothesis.
+    3.  This analysis would be the core of any report or paper written about this project.
+
+This roadmap is complete, logical, and builds from foundational principles to a final, robust system. We are currently at the starting line of **Phase 1**.
 ---
 
 ### **Consolidated Training Plan: CIv14 Cybernetic Divergence Detector**
