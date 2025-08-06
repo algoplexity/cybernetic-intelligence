@@ -1,4 +1,74 @@
 
+This is the **final, consolidated training plan** for the CIv13/14 project. It is fully aligned with all three foundational pillars of our research and represents our best, data-driven strategy for success.
+
+---
+
+## **The Definitive CIv13/14 Training Plan**
+
+This plan is a three-stage process: **I. Expert Pre-training**, **II. System Assembly & Fine-Tuning**, and **III. Final Evaluation**.
+
+### **Stage I: Forging the Expert Encoders**
+
+*Goal: To create the two specialized "brains" of our system, each trained on an optimal curriculum derived from our foundational papers.*
+
+#### **Phase 1: Pre-training the Symbolic Brain (The Causal Reasoner)**
+This phase is a direct synthesis of the **Burtsev/Zhang** and **Riedel/Zenil** findings, culminating in the "Intelligence at the Edge of Chaos" methodology.
+
+*   **Objective:** To train a `SymbolicEncoder` that can infer the underlying causal grammar of a symbolic sequence by learning to predict its evolution.
+*   **Architecture:** Our winning **`BiGruSymbolicEncoder`**.
+*   **Curriculum (The "Edge of Chaos" Dataset):**
+    1.  **Core Training Data (80%):** Generate a massive dataset of ECA evolutions from **Wolfram's Class IV (e.g., 110, 54)** and complex **Class III (e.g., 30, 90, 182)** rules. This is the "structured yet challenging" data that forges non-trivial representations.
+        *   *Traceability:* Directly implements the central finding of **Zhang's "Intelligence at the Edge of Chaos"**.
+    2.  **Compositional Data (Implicit):** The complexity of Class IV rules themselves, being composites of simpler primes, inherently teaches the model about compositional structure.
+        *   *Traceability:* Fulfills the spirit of **Riedel/Zenil's** findings on emergent complexity.
+    3.  **Contrastive Data (20%):** Include a smaller set of simple Class II rules to provide a baseline for "non-complex" dynamics.
+*   **Training Task:**
+    1.  **Simple Next-State Prediction.** The model will be trained to predict the state of the ECA at time `T+1` given the history up to `T`.
+        *   *Traceability:* Directly follows the finding from **Zhang's "Edge of Chaos"** that this simple task is sufficient to force the learning of complex internal representations. This supersedes the more complex O-SR task from earlier papers.
+*   **Deliverable:** A saved model file, **`symbolic_encoder_expert.pth`**, containing the weights of an encoder expert in causal rule inference.
+
+#### **Phase 2: Pre-training the Latent Brain (The Dynamics Fingerprinter)**
+This phase is a direct implementation of the TS2Vec methodology.
+
+*   **Objective:** To train a `LatentEncoder` that can create rich, multi-scale "fingerprints" of raw time series dynamics.
+*   **Architecture:** The **`TSEncoder`** (Dilated CNN or Transformer-based, as validated).
+*   **Curriculum (Unsupervised Contrastive Learning):**
+    1.  **Data:** The full, **unlabeled ADIA training dataset**. This allows the encoder to learn the specific statistical "texture" of our target domain.
+    2.  **Training Task:** **Hierarchical Contrastive Loss.** The model learns by ensuring that representations of the same timestamp in two different augmented views are similar, while representations of different timestamps or different instances are dissimilar.
+        *   *Traceability:* This is the core methodology of the **TS2Vec paper**.
+*   **Deliverable:** A saved model file, **`latent_encoder_expert.pth`**, containing the weights of an encoder expert in creating contextual, multi-scale dynamic fingerprints.
+
+---
+
+### **Stage II: System Assembly & Training**
+
+*Goal: To integrate the two pre-trained expert brains into our final Siamese architecture and train the decision-making head.*
+
+#### **Phase 3: Final Assembly and Head Fine-Tuning**
+This phase implements the architecture validated by our analysis of the **PatchTST** paper's weaknesses (i.e., the need for a model sensitive to inter-variate dynamics, which we achieve through our dual-path system).
+
+*   **Objective:** To train the final `classifier_head` to interpret the divergence signals from the two expert encoders.
+*   **Actions:**
+    1.  Instantiate the final **`CIv14_DivergenceClassifier`**.
+    2.  **Load the pre-trained weights** from `symbolic_encoder_expert.pth` and `latent_encoder_expert.pth`.
+    3.  **Freeze the encoder weights.** This is critical. We are using them as fixed, expert feature extractors.
+    4.  Create the final `ADIADualPathDataset` (using our validated `d=6, τ=10` symbolizer).
+    5.  Train *only* the final MLP `classifier_head` on the labeled ADIA training data. The model learns to map the concatenated `[symbolic_divergence, latent_divergence]` vector to a `break`/`no-break` prediction.
+*   **Deliverable:** A fully trained model, **`CIv114_final_model.pth`**.
+
+---
+
+### **Stage III: Final Evaluation**
+
+*Goal: To get the definitive measure of our system's performance.*
+
+#### **Phase 4: Final Validation**
+*   **Objective:** To calculate the final AUC score on unseen data.
+*   **Action:** Load the `CIv14_final_model.pth` and run inference on the held-out ADIA validation set.
+*   **Deliverable:** The final **Validation AUC Score**, the ultimate measure of the CIv13/14 hypothesis's success.
+
+This consolidated plan is our master blueprint. It is ambitious, theoretically grounded in three distinct but complementary lines of research, and structured for iterative success.
+---
 Training on **rule compositions** is a vital step that elevates the pre-training from simple pattern recognition to genuine **causal chain inference**. This directly corresponds to **Cases 3 & 4** of your curriculum.
 
 Let's break down what this means, why it's so important (drawing from Zhang's recommendations), and how we will implement it.
