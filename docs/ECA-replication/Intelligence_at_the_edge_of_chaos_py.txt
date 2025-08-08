@@ -1,0 +1,1931 @@
+========== FILE: DownStream_Task/ARC/arc.py ==========
+
+import glob
+import argparse
+import pandas as pd
+from tqdm import tqdm
+import torch
+import os
+from torch import nn
+from torch.utils.data import TensorDataset, DataLoader
+import wandb
+import sys
+sys.path.append(".")  # Add project root to path
+
+from Pretrain.utils import (
+    set_seed,
+    create_gpt2_model,
+    create_attention_mask,
+    RGBModel,
+)
+
+COLORS = ['B', 'P', 'R', 'G']
+COLOR2ID = {'B': 1, 'P': 2, 'R': 3, 'G': 4}
+ID2COLOR = {1: 'B', 2: 'P', 3: 'R', 4: 'G'}
+
+
+def build_l2_dataloader(batch_size, sample_path='downstream_data_level2_H_1103.pth'):
+    l2_data = torch.load(sample_path)
+    train_samples = l2_data['train']
+    val_samples = l2_data['val']
+    train_dataset = TensorDataset(
+        train_samples[:, :60, :].float(),
+        train_samples[:, 1:, :].long(),
+    )
+    val_dataset = TensorDataset(
+        val_samples[:, :60, :].float(),
+        val_samples[:, 1:, :].long(),
+    )
+    print(f"Number samples:\nTrain:{len(train_dataset)}\nVal:{len(val_dataset)}")
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size)
+    return train_loader, val_loader
+
+
+def train_model(model, train_loader, val_loader, device, thresholds_list=None, epochs=100, lr=1e-3, num_classes=5, patience=10):
+    model.to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    criterion = nn.CrossEntropyLoss()
+
+    if thresholds_list is None:
+        thresholds_list = [80, 90]
+    reach_list = [-1] * len(thresholds_list)
+    threshold_reached = {t: False for t in thresholds_list}
+
+    best_val_loss = float('inf')
+    best_val_acc = 0.0
+    patience_counter = 0
+    best_model = None
+
+    for epoch in tqdm(range(epochs)):
+        model.train()
+        train_loss = 0.0
+        for batch_sequences, batch_targets in train_loader:
+            batch_sequences, batch_targets = batch_sequences.to(device), batch_targets.to(device)
+            attention_mask = create_attention_mask(
+                batch_sequences.size(1)
+            ).repeat(batch_sequences.size(0), 1, 1, 1).to(device)
+
+            optimizer.zero_grad()
+            logits = model(batch_sequences, attention_mask)
+            loss = criterion(logits.reshape(-1, num_classes), batch_targets.reshape(-1))
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(),max_norm = 1.0)
+            optimizer.step()
+            train_loss += loss.item()
+
+        train_loss /= len(train_loader)
+
+        model.eval()
+        val_acc_number = 0
+        val_loss = 0.0
+        with torch.no_grad():
+            for batch_sequences, batch_targets in val_loader:
+                batch_sequences, batch_targets = batch_sequences.to(device), batch_targets.to(device)
+                attention_mask = create_attention_mask(batch_sequences.size(1)).repeat(batch_sequences.size(0), 1, 1, 1).to(device)
+                logits = model(batch_sequences, attention_mask)
+                loss = criterion(logits.reshape(-1, num_classes), batch_targets.reshape(-1))
+                val_loss += loss.item()
+                preds = logits.argmax(dim=-1)
+                val_acc_number += ((preds == batch_targets).float().sum(-1) == 100).sum().item()
+
+        val_loss /= len(val_loader)
+        val_acc = val_acc_number / len(val_loader.dataset) / 60
+        print(f"Epoch {epoch}: Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+
+        wandb.log({
+            "epoch": epoch,
+            "train_loss": train_loss,
+            "val_loss": val_loss,
+            "val_accuracy": val_acc
+        })
+
+        for i, threshold in enumerate(thresholds_list):
+            if val_acc * 100 >= threshold and not threshold_reached[threshold]:
+                reach_list[i] = epoch + 1
+                threshold_reached[threshold] = True
+                wandb.log({
+                    f"threshold_{threshold}_reached": epoch + 1,
+                    f"epoch_threshold_{threshold}": epoch + 1
+                })
+                print(f"Threshold {threshold}% reached at epoch {epoch + 1}")
+
+        if val_acc > best_val_acc or (val_acc == best_val_acc and val_loss < best_val_loss):
+            best_val_acc = val_acc
+            best_val_loss = val_loss
+            patience_counter = 0
+            best_model = model.state_dict()
+            print(f"New best model found at epoch {epoch}")
+            wandb.log({
+                "best_val_accuracy": best_val_acc, 
+                "best_val_loss": best_val_loss,
+                "best_model_epoch": epoch
+            })
+        else:
+            patience_counter += 1
+            print(f"No improvement. Patience: {patience_counter}/{patience}")
+
+    if best_model is not None:
+        model.load_state_dict(best_model)
+    else:
+        print("Warning: No best model was saved during training.")
+
+    for threshold, epoch in zip(thresholds_list, reach_list):
+        if epoch != -1:
+            wandb.run.summary[f"final_epoch_threshold_{threshold}"] = epoch
+        else:
+            wandb.run.summary[f"final_epoch_threshold_{threshold}"] = "Not Reached"
+
+    return reach_list, model, best_val_acc
+
+
+def run_downstream(gpt2_size, sample_width, seq_length, device, thresholds_list, batch_size,
+                   model_path=None, epochs=1000, seed=42, patience=30):
+    print(f"seed: {seed}")
+    set_seed(seed)
+
+    gpt2 = create_gpt2_model(gpt2_size, sample_width, seq_length)
+    if model_path is not None and model_path != 'baseline':
+        load_info = gpt2.load_state_dict(torch.load(model_path, map_location='cpu')["model"])
+        assert str(load_info) == "<All keys matched successfully>", "Failed to load model"
+    rgb_model = RGBModel(sample_width, gpt2, num_classes=len(COLORS)+1)
+
+    train_dataloader, val_dataloader = build_l2_dataloader(batch_size, args.data_path)
+
+    wandb.init(project="ARC_hard1116_grad", config={
+        "gpt2_size": gpt2_size,
+        "sample_width": sample_width,
+        "seq_length": seq_length,
+        "batch_size": batch_size,
+        "epochs": epochs,
+        "seed": seed,
+        "model_path": model_path,
+        "patience": patience
+    },name = model_path,reinit=True)
+    
+    reach_list, best_model, best_val_acc = train_model(rgb_model, train_dataloader, val_dataloader,
+                             epochs=epochs, device=device, thresholds_list=thresholds_list, 
+                             num_classes=len(COLORS)+1, patience=patience)
+
+    wandb.finish()
+    return reach_list, best_model, best_val_acc
+
+def main(args):
+    args.device = torch.device(args.device) if torch.cuda.is_available() else torch.device('cpu')
+
+    all_ckpt = glob.glob(f"{args.ckpt_dirs}/best_*.pth")
+    if args.only_baseline:
+        all_ckpt = ['baseline'] 
+
+    print(all_ckpt)
+    thresholds_list = [int(_.strip()) for _ in args.thresholds.split(',')]
+
+    result = []
+    for ckpt in tqdm(all_ckpt):
+        curr_reach_list, best_model, best_val_acc = run_downstream(args.gpt2_size, args.sample_width, args.seq_length,
+                                         args.device, thresholds_list, args.batch_size,
+                                         model_path=ckpt, seed=args.seed, epochs=args.epochs, patience=args.patience)
+        print(ckpt, curr_reach_list)
+        curr_res = {f"thres_{t}": r for t, r in zip(thresholds_list, curr_reach_list)}
+        curr_res['ckpt'] = ckpt
+        curr_res['best_accuracy'] = best_val_acc
+        result.append(curr_res)
+
+        results_save_path = os.path.join(args.save_dir, f"results_{ckpt.split('/')[-1]}.csv")
+        pd.DataFrame(result).to_csv(results_save_path, index=False)
+
+        model_save_path = os.path.join(args.save_dir, f"best_model_{ckpt.split('/')[-1]}")
+        torch.save(best_model.state_dict(), model_save_path)
+
+    results_save_path = os.path.join(args.save_dir, f"results_{ckpt.split('/')[-1]}.csv")
+    pd.DataFrame(result).to_csv(results_save_path, index=False)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Fine tuning a CA model on downstream task')
+    parser.add_argument('--gpt2_size', type=str, default='small', help='the size of gpt2 model')
+    parser.add_argument('--sample_width', type=int, default=100, help='Width of the samples')
+    parser.add_argument('--seq_length', type=int, default=60, help='Sequence length for training')
+    parser.add_argument('--batch_size', type=int, default=128, help='Batch size for training')
+    parser.add_argument('--epochs', type=int, default=1000, help='Number of epochs for training')
+    parser.add_argument('--seed', type=int, default=42, help='Seed for reproducibility')
+    parser.add_argument('--device', type=int, default=0, help='CUDA device index (0-5)')
+    parser.add_argument('--thresholds', type=str, default='10,20,30,40,50,60,70,80,90,100')
+    parser.add_argument('--ckpt_dirs', type=str, default='./')
+    parser.add_argument('--save_dir', type=str, required=True, help='Path to save the results')
+    parser.add_argument('--patience', type=int, default=10, help='Patience for early stopping')
+    parser.add_argument('--learning_rate', type=float, default=5e-5, help='Learning rate for training')
+    parser.add_argument("--only_baseline", action='store_true', help='Only run the baseline model')
+    parser.add_argument('--data_path', type=str, required=True, help='Path to the data')
+    args = parser.parse_args()
+    main(args)
+
+ 
+
+========== FILE: DownStream_Task/ARC/utils.py ==========
+
+import math
+import random
+import numpy as np
+from dataclasses import dataclass
+
+import torch
+import torch.nn as nn
+from torch.optim.lr_scheduler import LambdaLR
+from transformers import GPT2Model, GPT2Config
+
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+
+def get_lr_scheduler(optimizer, warmup_steps, total_steps, decrease_mode='cosin'):
+    def lr_lambda(current_step: int):
+        if current_step < warmup_steps:
+            return float(current_step) / float(max(1, warmup_steps))
+        else:
+            if decrease_mode == 'cosin':
+                progress = float(current_step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+                return 0.5 * (1.0 + math.cos(math.pi * progress))
+            elif decrease_mode == 'linear':
+                progress = float(current_step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+                return 1.0 - progress
+            elif decrease_mode == 'const':
+                return 1.0
+
+    return LambdaLR(optimizer, lr_lambda=lr_lambda)
+
+
+def cellular_automaton(rule, width=100, init='random', steps=100, k=1):
+    """
+    Simulates an elementary cellular automaton.
+
+    Parameters:
+    rule (int): The rule number (0-255).
+    width (int): The width of the domain (number of cells). Default is 100.
+    init (str or list): Initialization method ('random', 'zeros', 'ones', or a list). Default is 'random'.
+    steps (int): Number of time steps to simulate. Default is 100.
+    k (int): Interval for outputting time points. Default is 1 (every time point).
+
+    Returns:
+    list: A list of states at specified time intervals.
+    """
+    rule_bin = np.array([int(x) for x in np.binary_repr(rule, width=8)], dtype=np.uint8)
+    if init == 'random':
+        state = np.random.randint(2, size=width)
+    elif init == 'zeros':
+        state = np.zeros(width, dtype=np.uint8)
+    elif init == 'ones':
+        state = np.ones(width, dtype=np.uint8)
+    elif isinstance(init, list) and len(init) == width:
+        state = np.array(init, dtype=np.uint8)
+    else:
+        raise ValueError("Invalid initialization method")
+
+    states = [state.copy()]
+    for _ in range(steps):
+        new_state = np.zeros(width, dtype=np.uint8)
+        for i in range(width):
+            left = state[(i - 1) % width]
+            center = state[i]
+            right = state[(i + 1) % width]
+            neighborhood = (left << 2) | (center << 1) | right
+            new_state[i] = rule_bin[7 - neighborhood]
+        state = new_state.copy()
+        if (_ + 1) % k == 0:
+            states.append(state.copy())
+
+    return states
+
+
+def create_sequences_for_pretrain(states, seq_length, k):
+    """
+    Args:
+        states: list of length 'steps'
+        seq_length: window of timepoints to select for 1 LLM input sample
+        k: how many timepoints in future to skip
+    """
+    sequences = []
+    targets = []
+    for i in range(0, len(states) - seq_length * k, k):
+        seq = states[i:i + seq_length * k:k]
+        target = states[i + k:i + seq_length * k + k:k]  # shifted up 1 sequence element
+        sequences.append(seq)
+        targets.append(target)
+    return np.array(sequences), np.array(targets)  # [num_dataset_samples, 60, automata_width]
+
+
+def create_attention_mask(seq_length):
+    """
+    Create a lower triangular attention mask.
+    Args:
+        seq_length: int
+    """
+    mask = torch.tril(torch.ones((seq_length, seq_length))).unsqueeze(0).unsqueeze(0)
+    return mask
+
+
+class CustomGPT2Model(nn.Module):
+    def __init__(self, input_size, n_embd, n_layer, n_head, seq_length):
+        super(CustomGPT2Model, self).__init__()
+        self.config = GPT2Config(
+            n_embd=n_embd,
+            vocab_size=1,
+            n_layer=n_layer,
+            n_head=n_head,
+            n_positions=seq_length,
+        )
+        _gpt2 = GPT2Model(self.config)
+        self.wpe = _gpt2.wpe
+        self.gpt2 = _gpt2.h
+        self.dropout = _gpt2.drop
+        self.ln_f = _gpt2.ln_f
+
+        self.seq_length = seq_length
+        self.input_projection = nn.Linear(input_size, n_embd)
+        self.output_layer = nn.Linear(n_embd, input_size)
+
+    def forward(self, input_sequences, attention_mask):
+        """
+        Parameters:
+        input_sequences: (b, l, [100])
+
+        Returns:
+        logits: (b, l, [100]), no sigmoid activation
+        """
+        b, l, _ = input_sequences.shape
+        input_embeds = self.input_projection(input_sequences)
+        hidden_states = self.dropout(self.wpe(torch.arange(l).to(input_sequences.device)) + input_embeds)
+        for i in range(self.config.n_layer):
+            hidden_states = self.gpt2[i](hidden_states, attention_mask=attention_mask)[0]
+        hidden_states = self.ln_f(hidden_states)
+
+        logits = self.output_layer(hidden_states)
+        return logits
+
+
+@dataclass
+class CustomGPT2Config:
+    input_size: int
+    seq_length: int
+    n_layer: int = 12
+    n_head: int = 12
+    n_embd: int = 768
+
+
+gpt2_config_map = {
+    'tiny': dict(n_layer=1, n_head=1, n_embd=64),  # 857,188
+    'small': dict(n_layer=12, n_head=12, n_embd=768),  # 124M params, 124,439,808 - 38597376 | 85,256,548
+    'large': dict(n_layer=36, n_head=20, n_embd=1280),  # 774M params;                      | 708,724,580
+}
+
+
+def create_gpt2_model(gpt2name, input_size=100, seq_length=60):
+    config = CustomGPT2Config(input_size, seq_length, **gpt2_config_map[gpt2name])
+    return CustomGPT2Model(
+        config.input_size,
+        config.n_embd,
+        config.n_layer,
+        config.n_head,
+        config.seq_length,
+    )
+
+
+class RGBModel(nn.Module):
+    def __init__(self, input_size, gpt2: CustomGPT2Model, num_classes=4,output_size= None):
+        """
+        :param input_size: sample width
+        :param gpt2:  CustomGPT2Model
+        :param num_classes:
+        """
+        super().__init__()
+        self.num_classes = num_classes
+        self.input_proj = nn.Linear(input_size, gpt2.input_projection.in_features)
+        if output_size is None:
+            output_size = gpt2.output_layer.out_features
+        self.output = nn.Linear(gpt2.output_layer.out_features, output_size * num_classes)
+        self.gpt2 = gpt2
+        self.freeze()
+
+    def forward(self, x, attention_mask):
+        b, l, _ = x.size()
+        x = self.input_proj(x)
+        x = self.gpt2(x, attention_mask)
+        return self.output(x).reshape(b, l, -1, self.num_classes)
+
+    def freeze(self):
+        for param in self.gpt2.parameters():
+            param.requires_grad = False
+
+
+if __name__ == '__main__':
+    for size in ['small', 'medium', 'large']:
+        model = create_gpt2_model(size)
+        print(model)
+        print(model.config)
+        print(f"Total parameters: {sum(p.numel() for p in model.parameters()):,}")
+        print('=' * 100)
+
+
+ 
+
+========== FILE: DownStream_Task/NIM/nim_game.py ==========
+
+import os
+import json
+import glob
+import argparse
+import pandas as pd
+from tqdm import tqdm
+from itertools import chain
+import sys
+sys.path.append(".")  # Add project root to path
+
+import wandb
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+
+from Pretrain.utils import (
+    set_seed,
+    get_lr_scheduler,
+    create_gpt2_model,
+    CustomGPT2Model,
+)
+
+
+def wandb_log(data, args):
+    if args.wandb_enable:
+        wandb.log(data)
+    else:
+        print(data)
+
+# split 60 sequence length if nor enough fill them froim the begining
+def split_subseq(san_list, seq_length=61):
+    num_steps = len(san_list)
+    subseqs = []
+    for i in range(0, num_steps, seq_length):
+        if i + seq_length >= num_steps:
+            subseqs.append(san_list[-seq_length:])
+            break
+        else:
+            subseqs.append(san_list[i:i+seq_length])
+    return subseqs
+
+
+class SanDataSet(Dataset):
+    def __init__(self, data, san2id):
+        self.data = data
+        self.san2id = san2id
+        # add new pad id
+        self.pad_id = len(san2id)
+    
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        sample = self.data[idx]
+        x = sample[:-1]
+        y = sample[1:]
+        x = [self.san2id[i] for i in x]
+        y = [self.san2id[i] for i in y]
+        num_pad = 60 - len(x)
+        if num_pad > 0:
+            x = x + [self.pad_id] * num_pad
+            y = y + [-100] * num_pad
+        return torch.tensor(x), torch.tensor(y)
+    
+
+def build_san_dataloader(san2id, args):
+    df_train = pd.read_csv(args.train_data)
+    df_val = pd.read_csv(args.val_data)
+    print(df_train.shape, df_val.shape)
+    
+    train_data = list(chain(*[split_subseq(san.split()) for san in df_train['nim'].values]))
+    val_data = list(chain(*[split_subseq(san.split()) for san in df_val['nim'].values]))
+    print(len(train_data), len(val_data))
+    
+    train_set = SanDataSet(train_data, san2id)
+    val_set = SanDataSet(val_data, san2id)
+    
+    train_loader = DataLoader(train_set, args.batch_size, shuffle=True)
+    val_loader = DataLoader(val_set, args.batch_size)
+    
+    return train_loader, val_loader
+
+
+class SanModel(nn.Module):
+    def __init__(self, gpt2: CustomGPT2Model, vocab_size: int):
+        """
+        :param input_size: sample width
+        :param gpt2:  CustomGPT2Model
+        :param num_classes:
+        """
+        super().__init__()
+        self.embedding = nn.Embedding(vocab_size, gpt2.input_projection.in_features)
+        self.lm_head = nn.Linear(gpt2.output_layer.out_features, vocab_size)
+        self.gpt2 = gpt2
+        self.freeze()
+        self.tie_weight()
+
+    def forward(self, x, attention_mask=None):
+        x = self.embedding(x)
+        x = self.gpt2(x, attention_mask)
+        x = self.lm_head(x) # [b, l, v]
+        return x
+
+    def freeze(self):
+        for param in self.gpt2.gpt2.parameters():
+            param.requires_grad = False
+
+    def tie_weight(self):
+        self.lm_head.weight = nn.Parameter(self.embedding.weight.clone())
+
+
+def train_epoch(model, train_loader, criterion, optimizer, scheduler, epoch, args):
+    model.train()
+
+    train_loss_his = []
+    gradient_accumulation_steps = args.batch_size // args.micro_batch_size
+    total_iterations = len(train_loader) * gradient_accumulation_steps
+    pbar = tqdm(total=total_iterations, desc=f"Training Epoch: {epoch}")
+
+    vocab_size = model.lm_head.out_features
+
+    for i, (X, Y) in enumerate(train_loader):
+        X, Y = X.to(args.device), Y.to(args.device)
+        mb_loss = 0
+        for micro_x, micro_y in zip(torch.chunk(X, gradient_accumulation_steps), torch.chunk(Y, gradient_accumulation_steps)):
+            logits = model(micro_x)
+            loss = criterion(logits.reshape(-1, vocab_size), micro_y.reshape(-1))
+            loss = loss / gradient_accumulation_steps
+            loss.backward()
+            mb_loss += loss.item()
+            pbar.update(1)
+        
+        nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        scheduler.step()
+        optimizer.step()
+        optimizer.zero_grad(set_to_none=True)
+
+        pbar.set_postfix({"loss": round(mb_loss, 9), "lr": round(scheduler.get_last_lr()[0], 9)})
+        wandb.log({"train_loss": mb_loss, "learning_rate": scheduler.get_last_lr()[0]})
+
+        train_loss_his.append(mb_loss)
+
+    pbar.close()
+    return train_loss_his
+        
+
+
+def validation_epoch(model, data_loader, criterion, args, mode="val"):
+    model.eval()
+    vocab_size = model.lm_head.out_features
+    total_loss = 0.0
+    total_samples = 0
+    total_acc = 0.0
+    with torch.no_grad():
+        for i, (X, Y) in enumerate(tqdm(data_loader)):
+            X, Y = X.to(args.device), Y.to(args.device)
+
+            logits = model(X)
+            loss = criterion(logits.reshape(-1, vocab_size), Y.reshape(-1))
+            total_loss += loss.item()
+            
+            curr_result = (logits.argmax(dim=-1) == Y)[Y != -100]
+            total_samples += curr_result.numel()
+            total_acc += curr_result.sum().item()
+
+            if mode == "train" and i >= 10:
+                break
+
+    avg_loss = total_loss / (i+1)
+    avg_acc = total_acc / total_samples
+    return avg_loss, avg_acc
+
+
+
+def train_model(model, train_dataloader, val_dataloader, optimizer, scheduler, model_path, args):
+    criterion = nn.CrossEntropyLoss()
+    
+    best_val_loss = float("inf")
+    best_val_loss_el = float("inf")
+    patience = args.patience
+    assert patience == 4
+    count = 0
+    extra_counter = 0
+    extra_training_triggered = False
+    best_acc = 0
+    best_val_acc = 0  # Initialize best validation accuracy
+
+    for epoch in range(args.epochs):
+        print(f"==================== epoch: {epoch + 1} / {args.epochs} ===========================")
+        train_loss_his = train_epoch(model, train_dataloader, criterion, optimizer, scheduler, epoch, args)
+
+        _, train_acc = validation_epoch(model, train_dataloader, criterion, args, mode="train")
+        wandb.log({"epoch": epoch + 1, "train_acc": train_acc})
+        val_loss, val_acc = validation_epoch(model, val_dataloader, criterion, args)
+        wandb.log({"epoch": epoch + 1, "val_loss": val_loss, "val_acc": val_acc})
+        print(train_acc, val_loss, val_acc)
+
+        # Update best validation accuracy
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            wandb.log({"epoch": epoch + 1, "best_val_acc": best_val_acc})
+
+        if extra_training_triggered:
+            if val_loss >= 1e-3:
+                extra_training_triggered = False
+                extra_counter = 0
+            else:
+                extra_counter += 1
+                if extra_counter >= 50:
+                    print(f"Early stop due to validation loss < 1e-3 and 50 extra epochs at {epoch + 1} epoch!")
+                    wandb.log({"epoch": epoch + 1, "early_stop": epoch + 1})
+                    break
+        if val_loss < 1e-3 and not extra_training_triggered:
+            extra_training_triggered = True
+
+
+        # early stop
+        if (epoch + 1) % 5 == 0:
+            # val loss increasing or decreasing a few
+            if val_loss - best_val_loss_el >= -1e-4:
+                count += 1
+                if count > patience:
+                    print(f"Early stop at {epoch + 1} epoch!")
+                    wandb.log({"epoch": epoch + 1, "early_stop": epoch + 1})
+                    break
+            # val loss decreasing a lot
+            else:
+                best_val_loss_el = val_loss
+                count = 0
+        wandb.log({"epoch": epoch + 1, "patience_count": count})
+        
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_acc = val_acc
+            torch.save(model.state_dict(), os.path.join(args.save_dir, model_path.split('/')[-1]))
+
+    return best_acc, best_val_acc  # Return both best accuracy and best validation accuracy
+
+
+def run_downstream(model_path, args):
+    set_seed(args.seed)
+
+    gpt2 = create_gpt2_model(args.gpt2_size, args.sample_width, args.seq_length)
+    if model_path is not None and model_path != 'baseline':
+        sd = torch.load(model_path, map_location='cpu')
+        load_info = gpt2.load_state_dict(sd['model'])
+        assert str(load_info) == "<All keys matched successfully>", "Failed to load model"
+
+    san2id = json.load(open(args.label_path))
+    san_model = SanModel(gpt2, len(san2id) + 1)  # special token
+    san_model.to(args.device)
+
+    print(f"Total trainable parameters: {sum(p.numel() for p in san_model.parameters() if p.requires_grad)}")
+
+    train_dataloader, val_dataloader = build_san_dataloader(san2id, args)
+
+    optimizer = torch.optim.Adam(san_model.parameters(), lr=args.lr)
+    scheduler = get_lr_scheduler(
+        optimizer,
+        warmup_steps=len(train_dataloader) * int(0.1 * args.epochs),
+        total_steps=len(train_dataloader) * args.epochs,
+    )
+    
+
+    best_acc, best_val_acc = train_model(san_model, train_dataloader, val_dataloader, optimizer, scheduler, model_path, args)
+
+    return best_acc, best_val_acc
+
+
+def main(args):
+    if not os.path.exists(args.save_dir):
+        os.makedirs(args.save_dir)
+
+    args.device = torch.device(args.device) if torch.cuda.is_available() else torch.device('cpu')
+    args.micro_batch_size = (args.batch_size if args.micro_batch_size is None else args.micro_batch_size)
+
+    all_ckpt = []
+    for _dir in args.ckpt_dirs.split(','):
+        _dir = _dir.strip()
+        all_ckpt += glob.glob(f"{_dir}/*.pth")
+    if args.only_baseline:
+        all_ckpt = ['baseline'] 
+
+    result = []
+    for ckpt in tqdm(all_ckpt):
+        wandb.init(project="nim_downstream", name=ckpt, config=args)
+        best_acc, best_val_acc = run_downstream(ckpt, args)
+
+        print(ckpt, best_acc, best_val_acc)
+        curr_res = {
+            'best_acc': best_acc,
+            'best_val_acc': best_val_acc,
+            'ckpt': ckpt
+        }
+        result.append(curr_res)
+        pd.DataFrame(result).to_csv(os.path.join(args.save_dir, 'result_new_1117.csv'), index=False)
+        wandb.finish()
+
+    pd.DataFrame(result).to_csv(os.path.join(args.save_dir, 'result_new_1117.csv'), index=False)
+
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Fine tuning a CA model on downstream task')
+    parser.add_argument('--gpt2_size', type=str, default='small', help='the siez of gpt2 model')
+    parser.add_argument('--sample_width', type=int, default=100, help='Width of the samples')
+    parser.add_argument('--seq_length', type=int, default=60, help='Sequence length for training')
+
+    parser.add_argument('--train_data', type=str, default="DownStream_Task/NIM/data/nim_sim_data_2000N_5-15H_1-10C_0E_val.csv")
+    parser.add_argument('--val_data', type=str, default="DownStream_Task/NIM/data/nim_sim_data_8000N_5-15H_1-10C_0E_train.csv")
+    parser.add_argument('--label_path', type=str, default="DownStream_Task/NIM/token_dictionary.json")
+
+    parser.add_argument('--batch_size', type=int, default=64, help='Batch size for training')
+    parser.add_argument('--micro_batch_size', type=int, default=None, help='Micro batch size for training')
+    parser.add_argument('--lr', type=float, default=5e-4, help='Learning rate for training')
+    parser.add_argument('--epochs', type=int, default=1000, help='Number of epochs for training')
+    parser.add_argument('--seed', type=int, default=42, help='Sequence length for training')
+    parser.add_argument('--device', type=int, default=0, help='CUDA device index (0-5)')
+
+    parser.add_argument('--ckpt_dirs', type=str, required=True, help='Path to the checkpoint')
+    parser.add_argument('--save_dir', type=str, default="nim_outs-v2", help='Path to save the results')
+    parser.add_argument("--patience", type=int, default=4, help='Patience for early stopping')
+    parser.add_argument('--wandb_enable', type=bool, default=True, help='Enable wandb logging')
+
+    parser.add_argument("--only_baseline", action='store_true', help='Only run the baseline model')
+    
+    args = parser.parse_args()
+    main(args)
+
+
+ 
+
+========== FILE: DownStream_Task/NIM/utils.py ==========
+
+import math
+import random
+import numpy as np
+from dataclasses import dataclass
+
+import torch
+import torch.nn as nn
+from torch.optim.lr_scheduler import LambdaLR
+from transformers import GPT2Model, GPT2Config
+
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+
+def get_lr_scheduler(optimizer, warmup_steps, total_steps, decrease_mode='cosin'):
+    def lr_lambda(current_step: int):
+        if current_step < warmup_steps:
+            return float(current_step) / float(max(1, warmup_steps))
+        else:
+            if decrease_mode == 'cosin':
+                progress = float(current_step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+                return 0.5 * (1.0 + math.cos(math.pi * progress))
+            elif decrease_mode == 'linear':
+                progress = float(current_step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+                return 1.0 - progress
+            elif decrease_mode == 'const':
+                return 1.0
+
+    return LambdaLR(optimizer, lr_lambda=lr_lambda)
+
+
+def cellular_automaton(rule, width=100, init='random', steps=100, k=1):
+    """
+    Simulates an elementary cellular automaton.
+
+    Parameters:
+    rule (int): The rule number (0-255).
+    width (int): The width of the domain (number of cells). Default is 100.
+    init (str or list): Initialization method ('random', 'zeros', 'ones', or a list). Default is 'random'.
+    steps (int): Number of time steps to simulate. Default is 100.
+    k (int): Interval for outputting time points. Default is 1 (every time point).
+
+    Returns:
+    list: A list of states at specified time intervals.
+    """
+    rule_bin = np.array([int(x) for x in np.binary_repr(rule, width=8)], dtype=np.uint8)
+    if init == 'random':
+        state = np.random.randint(2, size=width)
+    elif init == 'zeros':
+        state = np.zeros(width, dtype=np.uint8)
+    elif init == 'ones':
+        state = np.ones(width, dtype=np.uint8)
+    elif isinstance(init, list) and len(init) == width:
+        state = np.array(init, dtype=np.uint8)
+    else:
+        raise ValueError("Invalid initialization method")
+
+    states = [state.copy()]
+    for _ in range(steps):
+        new_state = np.zeros(width, dtype=np.uint8)
+        for i in range(width):
+            left = state[(i - 1) % width]
+            center = state[i]
+            right = state[(i + 1) % width]
+            neighborhood = (left << 2) | (center << 1) | right
+            new_state[i] = rule_bin[7 - neighborhood]
+        state = new_state.copy()
+        if (_ + 1) % k == 0:
+            states.append(state.copy())
+
+    return states
+
+
+def create_sequences_for_pretrain(states, seq_length, k):
+    """
+    Args:
+        states: list of length 'steps'
+        seq_length: window of timepoints to select for 1 LLM input sample
+        k: how many timepoints in future to skip
+    """
+    sequences = []
+    targets = []
+    for i in range(0, len(states) - seq_length * k, k):
+        seq = states[i:i + seq_length * k:k]
+        target = states[i + k:i + seq_length * k + k:k]  # shifted up 1 sequence element
+        sequences.append(seq)
+        targets.append(target)
+    return np.array(sequences), np.array(targets)  # [num_dataset_samples, 60, automata_width]
+
+
+def create_attention_mask(seq_length):
+    """
+    Create a lower triangular attention mask.
+    Args:
+        seq_length: int
+    """
+    mask = torch.tril(torch.ones((seq_length, seq_length))).unsqueeze(0).unsqueeze(0)
+    return mask
+
+
+class CustomGPT2Model(nn.Module):
+    def __init__(self, input_size, n_embd, n_layer, n_head, seq_length):
+        super(CustomGPT2Model, self).__init__()
+        self.config = GPT2Config(
+            n_embd=n_embd,
+            vocab_size=1,
+            n_layer=n_layer,
+            n_head=n_head,
+            n_positions=seq_length,
+        )
+        _gpt2 = GPT2Model(self.config)
+        self.wpe = _gpt2.wpe
+        self.gpt2 = _gpt2.h
+        self.dropout = _gpt2.drop
+        self.ln_f = _gpt2.ln_f
+
+        self.seq_length = seq_length
+        self.input_projection = nn.Linear(input_size, n_embd)
+        self.output_layer = nn.Linear(n_embd, input_size)
+
+    def forward(self, input_sequences, attention_mask):
+        """
+        Parameters:
+        input_sequences: (b, l, [100])
+
+        Returns:
+        logits: (b, l, [100]), no sigmoid activation
+        """
+        b, l, _ = input_sequences.shape
+        input_embeds = self.input_projection(input_sequences)
+        hidden_states = self.dropout(self.wpe(torch.arange(l).to(input_sequences.device)) + input_embeds)
+        for i in range(self.config.n_layer):
+            hidden_states = self.gpt2[i](hidden_states, attention_mask=attention_mask)[0]
+        hidden_states = self.ln_f(hidden_states)
+
+        logits = self.output_layer(hidden_states)
+        return logits
+
+
+@dataclass
+class CustomGPT2Config:
+    input_size: int
+    seq_length: int
+    n_layer: int = 12
+    n_head: int = 12
+    n_embd: int = 768
+
+
+gpt2_config_map = {
+    'tiny': dict(n_layer=1, n_head=1, n_embd=64),  # 857,188
+    'small': dict(n_layer=12, n_head=12, n_embd=768),  # 124M params, 124,439,808 - 38597376 | 85,256,548
+    'large': dict(n_layer=36, n_head=20, n_embd=1280),  # 774M params;                      | 708,724,580
+}
+
+
+def create_gpt2_model(gpt2name, input_size=100, seq_length=60):
+    config = CustomGPT2Config(input_size, seq_length, **gpt2_config_map[gpt2name])
+    return CustomGPT2Model(
+        config.input_size,
+        config.n_embd,
+        config.n_layer,
+        config.n_head,
+        config.seq_length,
+    )
+
+
+class RGBModel(nn.Module):
+    def __init__(self, input_size, gpt2: CustomGPT2Model, num_classes=4):
+        """
+        :param input_size: sample width
+        :param gpt2:  CustomGPT2Model
+        :param num_classes:
+        """
+        super().__init__()
+        self.num_classes = num_classes
+        self.input_proj = nn.Linear(input_size, gpt2.input_projection.in_features)
+        self.output = nn.Linear(gpt2.output_layer.out_features, gpt2.output_layer.out_features * num_classes)
+        self.gpt2 = gpt2
+        self.freeze()
+
+    def forward(self, x, attention_mask):
+        b, l, _ = x.size()
+        x = self.input_proj(x)
+        x = self.gpt2(x, attention_mask)
+        return self.output(x).reshape(b, l, -1, self.num_classes)
+
+    def freeze(self):
+        for param in self.gpt2.parameters():
+            param.requires_grad = False
+
+
+if __name__ == '__main__':
+    for size in ['small', 'medium', 'large']:
+        model = create_gpt2_model(size)
+        print(model)
+        print(model.config)
+        print(f"Total parameters: {sum(p.numel() for p in model.parameters()):,}")
+        print('=' * 100)
+
+
+ 
+
+========== FILE: DownStream_Task/chess/chess.py ==========
+
+import os
+import json
+import glob
+import argparse
+import pandas as pd
+from tqdm import tqdm
+from itertools import chain
+import sys
+sys.path.append(".")  # Add project root to path
+
+import wandb
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+
+
+from Pretrain.utils import (
+    set_seed,
+    get_lr_scheduler,
+    create_gpt2_model,
+    CustomGPT2Model,
+)
+
+
+def wandb_log(data, args):
+    if args.wandb_enable:
+        wandb.log(data)
+    else:
+        print(data)
+
+# split 60 sequence length if nor enough fill them froim the begining
+def split_subseq(san_list, seq_length=61):
+    num_steps = len(san_list)
+    subseqs = []
+    for i in range(0, num_steps, seq_length):
+        if i + seq_length >= num_steps:
+            subseqs.append(san_list[-seq_length:])
+            break
+        else:
+            subseqs.append(san_list[i:i+seq_length])
+    return subseqs
+
+
+class SanDataSet(Dataset):
+    def __init__(self, data, san2id):
+        self.data = data
+        self.san2id = san2id
+        # add new pad id
+        self.pad_id = len(san2id)
+    
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        sample = self.data[idx]
+        x = sample[:-1]
+        y = sample[1:]
+        x = [self.san2id[i] for i in x]
+        y = [self.san2id[i] for i in y]
+        num_pad = 60 - len(x)
+        if num_pad > 0:
+            x = x + [self.pad_id] * num_pad
+            y = y + [-100] * num_pad
+        return torch.tensor(x), torch.tensor(y)
+    
+
+def build_san_dataloader(san2id, args):
+    df_train = pd.read_csv(args.train_data)
+    df_val = pd.read_csv(args.val_data)
+    print(df_train.shape, df_val.shape)
+    
+    train_data = list(chain(*[split_subseq(san.split()) for san in df_train['san'].values]))
+    val_data = list(chain(*[split_subseq(san.split()) for san in df_val['san'].values]))
+    print(len(train_data), len(val_data))
+    
+    train_set = SanDataSet(train_data, san2id)
+    val_set = SanDataSet(val_data, san2id)
+    
+    train_loader = DataLoader(train_set, args.batch_size, shuffle=True)
+    val_loader = DataLoader(val_set, args.batch_size)
+    
+    return train_loader, val_loader
+
+
+class SanModel(nn.Module):
+    def __init__(self, gpt2: CustomGPT2Model, vocab_size: int):
+        """
+        :param input_size: sample width
+        :param gpt2:  CustomGPT2Model
+        :param num_classes:
+        """
+        super().__init__()
+        self.embedding = nn.Embedding(vocab_size, gpt2.input_projection.in_features)
+        self.lm_head = nn.Linear(gpt2.output_layer.out_features, vocab_size)
+        self.gpt2 = gpt2
+        self.freeze()
+        self.tie_weight()
+
+    def forward(self, x, attention_mask=None):
+        x = self.embedding(x)
+        x = self.gpt2(x, attention_mask)
+        x = self.lm_head(x) # [b, l, v]
+        return x
+
+    def freeze(self):
+        for param in self.gpt2.gpt2.parameters():
+            param.requires_grad = False
+
+    def tie_weight(self):
+        self.lm_head.weight = nn.Parameter(self.embedding.weight.clone())
+
+
+def train_epoch(model, train_loader, criterion, optimizer, scheduler, epoch, args):
+    model.train()
+
+    train_loss_his = []
+    gradient_accumulation_steps = args.batch_size // args.micro_batch_size
+    total_iterations = len(train_loader) * gradient_accumulation_steps
+    pbar = tqdm(total=total_iterations, desc=f"Training Epoch: {epoch}")
+
+    vocab_size = model.lm_head.out_features
+
+    for i, (X, Y) in enumerate(train_loader):
+        X, Y = X.to(args.device), Y.to(args.device)
+        mb_loss = 0
+        for micro_x, micro_y in zip(torch.chunk(X, gradient_accumulation_steps), torch.chunk(Y, gradient_accumulation_steps)):
+            logits = model(micro_x)
+            loss = criterion(logits.reshape(-1, vocab_size), micro_y.reshape(-1))
+            loss = loss / gradient_accumulation_steps
+            loss.backward()
+            mb_loss += loss.item()
+            pbar.update(1)
+        
+        nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        scheduler.step()
+        optimizer.step()
+        optimizer.zero_grad(set_to_none=True)
+
+        pbar.set_postfix({"loss": round(mb_loss, 9), "lr": round(scheduler.get_last_lr()[0], 9)})
+        wandb.log({"train_loss": mb_loss, "learning_rate": scheduler.get_last_lr()[0]})
+
+        train_loss_his.append(mb_loss)
+
+    pbar.close()
+    return train_loss_his
+        
+
+
+def validation_epoch(model, data_loader, criterion, args, mode="val"):
+    model.eval()
+    vocab_size = model.lm_head.out_features
+    total_loss = 0.0
+    total_samples = 0
+    total_acc = 0.0
+    with torch.no_grad():
+        for i, (X, Y) in enumerate(tqdm(data_loader)):
+            X, Y = X.to(args.device), Y.to(args.device)
+
+            logits = model(X)
+            loss = criterion(logits.reshape(-1, vocab_size), Y.reshape(-1))
+            total_loss += loss.item()
+            
+            curr_result = (logits.argmax(dim=-1) == Y)[Y != -100]
+            total_samples += curr_result.numel()
+            total_acc += curr_result.sum().item()
+
+            if mode == "train" and i >= 10:
+                break
+
+    avg_loss = total_loss / (i+1)
+    avg_acc = total_acc / total_samples
+    return avg_loss, avg_acc
+
+
+
+def train_model(model, train_dataloader, val_dataloader, optimizer, scheduler, model_path, args):
+    criterion = nn.CrossEntropyLoss()
+    
+    best_val_loss = float("inf")
+    best_val_loss_el = float("inf")
+    patience = args.patience
+    # assert patience == 4
+    count = 0
+    extra_counter = 0
+    extra_training_triggered = False
+    best_acc = 0
+    best_val_acc = 0  # Initialize best validation accuracy
+
+    for epoch in range(args.epochs):
+        print(f"==================== epoch: {epoch + 1} / {args.epochs} ===========================")
+        train_loss_his = train_epoch(model, train_dataloader, criterion, optimizer, scheduler, epoch, args)
+
+        _, train_acc = validation_epoch(model, train_dataloader, criterion, args, mode="train")
+        wandb.log({"epoch": epoch + 1, "train_acc": train_acc})
+        val_loss, val_acc = validation_epoch(model, val_dataloader, criterion, args)
+        wandb.log({"epoch": epoch + 1, "val_loss": val_loss, "val_acc": val_acc})
+        print(train_acc, val_loss, val_acc)
+
+        # Update best validation accuracy
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            wandb.log({"epoch": epoch + 1, "best_val_acc": best_val_acc})
+
+        if extra_training_triggered:
+            if val_loss >= 1e-3:
+                extra_training_triggered = False
+                extra_counter = 0
+            else:
+                extra_counter += 1
+                if extra_counter >= 50:
+                    print(f"Early stop due to validation loss < 1e-3 and 50 extra epochs at {epoch + 1} epoch!")
+                    wandb.log({"epoch": epoch + 1, "early_stop": epoch + 1})
+                    break
+        if val_loss < 1e-3 and not extra_training_triggered:
+            extra_training_triggered = True
+
+
+        # early stop
+        if (epoch + 1) % 5 == 0:
+            # val loss increasing or decreasing a few
+            if val_loss - best_val_loss_el >= -1e-4:
+                count += 1
+                if count > patience:
+                    print(f"Early stop at {epoch + 1} epoch!")
+                    wandb.log({"epoch": epoch + 1, "early_stop": epoch + 1})
+                    break
+            # val loss decreasing a lot
+            else:
+                best_val_loss_el = val_loss
+                count = 0
+        wandb.log({"epoch": epoch + 1, "patience_count": count})
+        
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_acc = val_acc
+            torch.save(model.state_dict(), os.path.join(args.save_dir, model_path.split('/')[-1]))
+
+    return best_acc, best_val_acc  # Return both best accuracy and best validation accuracy
+
+
+def run_downstream(model_path, args):
+    set_seed(args.seed)
+
+    gpt2 = create_gpt2_model(args.gpt2_size, args.sample_width, args.seq_length)
+    if model_path is not None and model_path != 'baseline':
+        sd = torch.load(model_path, map_location='cpu')
+        load_info = gpt2.load_state_dict(sd['model'])
+        assert str(load_info) == "<All keys matched successfully>", "Failed to load model"
+
+    san2id = json.load(open(args.label_path))
+    san_model = SanModel(gpt2, len(san2id) + 1)  # special token
+    san_model.to(args.device)
+
+    print(f"Total trainable parameters: {sum(p.numel() for p in san_model.parameters() if p.requires_grad)}")
+
+    train_dataloader, val_dataloader = build_san_dataloader(san2id, args)
+
+    optimizer = torch.optim.Adam(san_model.parameters(), lr=args.lr)
+    scheduler = get_lr_scheduler(
+        optimizer,
+        warmup_steps=len(train_dataloader) * int(0.1 * args.epochs),
+        total_steps=len(train_dataloader) * args.epochs,
+    )
+    
+
+    best_acc, best_val_acc = train_model(san_model, train_dataloader, val_dataloader, optimizer, scheduler, model_path, args)
+
+    return best_acc, best_val_acc
+
+
+def main(args):
+    if not os.path.exists(args.save_dir):
+        os.makedirs(args.save_dir)
+
+    args.device = torch.device(args.device) if torch.cuda.is_available() else torch.device('cpu')
+    args.micro_batch_size = (args.batch_size if args.micro_batch_size is None else args.micro_batch_size)
+
+    all_ckpt = []
+    for _dir in args.ckpt_dirs.split(','):
+        _dir = _dir.strip()
+        all_ckpt += glob.glob(f"{_dir}/*.pth")
+    if args.only_baseline:
+        all_ckpt = ['baseline'] 
+
+    result = []
+    for ckpt in tqdm(all_ckpt):
+        wandb.init(project="chess_san_downstream_1112",name=ckpt, config=args)
+        best_acc, best_val_acc = run_downstream(ckpt, args)
+
+        print(ckpt, best_acc, best_val_acc)
+        curr_res = {
+            'best_acc': best_acc,
+            'best_val_acc': best_val_acc,
+            'ckpt': ckpt
+        }
+        result.append(curr_res)
+        pd.DataFrame(result).to_csv(os.path.join(args.save_dir, 'result_new_0925.csv'), index=False)
+        wandb.finish()
+
+    pd.DataFrame(result).to_csv(os.path.join(args.save_dir, 'result_new_0925.csv'), index=False)
+
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Fine tuning a CA model on downstream task')
+    parser.add_argument('--gpt2_size', type=str, default='small', help='the siez of gpt2 model')
+    parser.add_argument('--sample_width', type=int, default=100, help='Width of the samples')
+    parser.add_argument('--seq_length', type=int, default=60, help='Sequence length for training')
+
+    parser.add_argument('--train_data', type=str, default="DownStream_Task/chess/san-v2/san_train.csv")
+    parser.add_argument('--val_data', type=str, default="DownStream_Task/chess/san-v2/san_val.csv")
+    parser.add_argument('--label_path', type=str, default="DownStream_Task/chess/san-v2/san_label.json")
+
+    parser.add_argument('--batch_size', type=int, default=64, help='Batch size for training')
+    parser.add_argument('--micro_batch_size', type=int, default=None, help='Micro batch size for training')
+    parser.add_argument('--lr', type=float, default=5e-4, help='Learning rate for training')
+    parser.add_argument('--epochs', type=int, default=1000, help='Number of epochs for training')
+    parser.add_argument('--seed', type=int, default=42, help='Sequence length for training')
+    parser.add_argument('--device', type=int, default=0, help='CUDA device index (0-5)')
+
+    parser.add_argument('--ckpt_dirs', type=str, required=True, help='Path to the checkpoint')
+    parser.add_argument('--save_dir', type=str, default="sanouts-new_v2", help='Path to save the results')
+    parser.add_argument("--patience", type=int, default=5, help='Patience for early stopping')
+    parser.add_argument('--wandb_enable', type=bool, default=True, help='Enable wandb logging')
+
+    parser.add_argument("--only_baseline", action='store_true', help='Only run the baseline model')
+
+    args = parser.parse_args()
+    main(args)
+
+
+ 
+
+========== FILE: Pretrain/pretrain.py ==========
+
+import os
+import argparse
+import json
+import shutil
+import numpy as np
+from tqdm import tqdm
+from functools import partial
+from sklearn.metrics import roc_auc_score
+
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+import wandb
+
+from utils import (
+    set_seed,
+    get_lr_scheduler,
+    cellular_automaton,
+    create_sequences_for_pretrain,
+    create_attention_mask,
+    create_gpt2_model,
+)
+
+
+class PreTrainDataset(Dataset):
+    def __init__(self, sequences, targets):
+        super().__init__()
+        self.sequences, self.targets = sequences, targets
+
+    def __len__(self):
+        return len(self.sequences)
+
+    def __getitem__(self, idx):
+        return torch.tensor(self.sequences[idx]).float(), torch.tensor(self.targets[idx]).float()
+
+
+def collate_fn(batch, sample_width, width=1000, num_samples=100):
+    """ multi version """
+    x = []
+    y = []
+
+    start_ids = np.random.choice(width - sample_width, num_samples, replace=False).tolist()
+
+    for sample in batch:
+        for start in start_ids:
+            end = start + sample_width
+            x.append(sample[0][:, start:end])
+            y.append(sample[1][:, start:end])
+    x = torch.stack(x)
+    y = torch.stack(y)
+    return x, y
+
+
+def build_dataloader(args):
+    states = cellular_automaton(args.rule, args.width, args.automation_type, args.steps)
+    flattened_states = np.stack(states)
+    sequences, targets = create_sequences_for_pretrain(flattened_states, args.seq_length, args.k)
+
+    val_index = int(len(sequences) * 0.9)
+    train_sequences, train_targets = sequences[:val_index], targets[:val_index]
+    val_sequences, val_targets = sequences[val_index:], targets[val_index:]
+
+    train_dataset = PreTrainDataset(train_sequences, train_targets)
+    val_dataset = PreTrainDataset(val_sequences, val_targets)
+
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
+                              collate_fn=partial(collate_fn, sample_width=args.sample_width,
+                                                 num_samples=args.num_samples, width=args.width))
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size,
+                            collate_fn=partial(collate_fn, sample_width=args.sample_width, num_samples=args.num_samples,
+                                               width=args.width))
+
+    return train_loader, val_loader
+
+
+def train_epoch(model, train_loader, criterion, optimizer, scheduler, args):
+    model.train()
+
+    train_loss_his = []
+    gradient_accumulation_steps = args.batch_size // args.micro_batch_size
+    for batch_sequences, batch_targets in tqdm(train_loader):
+        batch_sequences, batch_targets = batch_sequences.to(args.device), batch_targets.to(args.device)
+        attention_mask = create_attention_mask(batch_sequences.size(1)).repeat(batch_sequences.size(0), 1, 1, 1).to(
+            args.device)
+
+        for sub_batch_sequences, sub_batch_targets, sub_attention_mask in zip(
+                torch.chunk(batch_sequences, args.num_samples),
+                torch.chunk(batch_targets, args.num_samples),
+                torch.chunk(attention_mask, args.num_samples)
+        ):
+            mb_loss = 0
+            for micro_batch_sequences, micro_batch_targets, micro_attention_mask in zip(
+                    torch.chunk(sub_batch_sequences, gradient_accumulation_steps),
+                    torch.chunk(sub_batch_targets, gradient_accumulation_steps),
+                    torch.chunk(sub_attention_mask, gradient_accumulation_steps),
+            ):
+                logits = model(micro_batch_sequences, micro_attention_mask)
+                loss = criterion(torch.sigmoid(logits), micro_batch_targets)
+                loss = loss / gradient_accumulation_steps
+                mb_loss += loss.item()
+                loss.backward()
+            nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            optimizer.step()
+            optimizer.zero_grad(set_to_none=True)
+            train_loss_his.append(mb_loss)
+            wandb_log({"train loss": mb_loss}, args)
+        wandb_log({"lr": round(scheduler.get_last_lr()[0], 9)}, args)
+        scheduler.step()
+
+    return train_loss_his
+
+
+def validation_epoch(model, data_loader, criterion, args, mode='val'):
+    model.eval()
+    total_loss = 0.0
+    total_batch = 0
+    total_acc, total_auc = 0.0, 0.0
+    with torch.no_grad():
+        for batch_sequences, batch_targets in tqdm(data_loader):
+            batch_sequences, batch_targets = batch_sequences.to(args.device), batch_targets.to(args.device)
+            attention_mask = create_attention_mask(batch_sequences.size(1)).repeat(batch_sequences.size(0), 1, 1, 1).to(
+                args.device)
+
+            for sub_batch_sequences, sub_batch_targets, sub_attention_mask in zip(
+                    torch.chunk(batch_sequences, args.num_samples),
+                    torch.chunk(batch_targets, args.num_samples),
+                    torch.chunk(attention_mask, args.num_samples)):
+                # (b, l, [100])
+                logits = model(sub_batch_sequences, sub_attention_mask)
+                logits = torch.sigmoid(logits)
+                loss = criterion(logits, sub_batch_targets)
+                total_loss += loss.item()
+
+                curr_acc, curr_auc = cal_metrics(
+                    logits.cpu().numpy(),
+                    sub_batch_targets.cpu().numpy()
+                )
+                total_acc += curr_acc
+                total_auc += curr_auc
+                total_batch += 1
+                if mode == 'train':
+                    break
+
+    avg_loss = total_loss / total_batch
+    avg_acc = total_acc / total_batch
+    avg_auc = total_auc / total_batch
+    return avg_loss, avg_acc, avg_auc
+
+
+def cal_metrics(logits, targets):
+    """
+    Parameters:
+    logits: (b, l, [100])
+    targets: (b, l, [100])
+    """
+    b, l, d = logits.shape
+    preds = (logits > 0.5).astype(float)
+
+    # acc = ((preds == targets).sum(-1) == d).sum() / b / l  # by board
+    acc = (preds == targets).sum() / b / l / d  # by cell
+
+    try:
+        auc = roc_auc_score(targets.reshape(-1), logits.reshape(-1))
+    except ValueError:
+        auc = -1
+
+    return acc, auc
+
+
+def wandb_log(data, args):
+    if args.wandb_enable:
+        wandb.log(data)
+    else:
+        print(data)
+
+
+def args_post_init(args):
+    if args.wandb_name is None:
+        args.wandb_name = f"loss_for_{args.rule}_{args.gpt2_size}"
+    args.device = torch.device(args.device if torch.cuda.is_available() else "cpu")
+    args.micro_batch_size = args.batch_size if args.micro_batch_size is None else args.micro_batch_size
+    args.metrics_path = f"{args.save_dir}/metrics_{args.rule}_{args.k}_{args.gpt2_size}.json"
+    args.save_dir = f"{args.save_dir}/rule{args.rule}-k{args.k}-{args.gpt2_size}"
+    return args
+
+
+def save_checkpoint(epoch, count, model, optimizer, scheduler, best_val_loss, best_val_loss_el, save_dir,
+                    is_best=False):
+    ckpt = {
+        'model': model.state_dict(),
+        'optimizer': optimizer.state_dict(),
+        'scheduler': scheduler.state_dict(),
+        'count': count,
+        'epoch': epoch,
+        'best_val_loss': best_val_loss,
+        'best_val_loss_el': best_val_loss_el,
+    }
+    if is_best:
+        torch.save(ckpt, os.path.join(save_dir, f'best_pytorch_model_{epoch}_rule{args.rule}-k{args.k}-{args.gpt2_size}.pth'))
+    else:
+        torch.save(ckpt, os.path.join(save_dir, f'pytorch_model_{epoch}_rule{args.rule}-k{args.k}-{args.gpt2_size}.pth'))
+
+
+def sort_checkpoint(ck_name):
+    if "rule" in ck_name:
+        return int(ck_name.replace('.pth', '').split('_')[-2])
+    else:
+        return int(ck_name.replace('.pth', '').split('_')[-1])
+
+
+def load_last_checkpoint(model, optimizer, scheduler, save_dir):
+    checkpoints = [f for f in os.listdir(save_dir) if f.startswith('pytorch_model_')]
+    if len(checkpoints) == 0:
+        raise ValueError("No checkpoint found")
+    checkpoints.sort(key=lambda x: sort_checkpoint(x))
+    sd = torch.load(os.path.join(save_dir, checkpoints[-1]))
+    model.load_state_dict(sd['model'])
+    optimizer.load_state_dict(sd['optimizer'])
+    scheduler.load_state_dict(sd['scheduler'])
+    count = sd['count']
+    epoch = sd['epoch']
+    best_val_loss = sd['best_val_loss']
+    best_val_loss_el = sd['best_val_loss_el']
+    return model, optimizer, scheduler, count, epoch, best_val_loss, best_val_loss_el
+
+
+def delete_oldest_checkpoint(save_dir, save_total_limit=2):
+    for prefix in ['pytorch_model_', 'best_pytorch_model_']:
+        # List all checkpoint dirs
+        checkpoints = [f for f in os.listdir(save_dir) if f.startswith(prefix)]
+        # Sort checkpoints by modification time (oldest first)
+        checkpoints.sort(key=lambda x: sort_checkpoint(x))
+        # If there are more than max_checkpoints, delete the oldest one
+        if len(checkpoints) > save_total_limit:
+            oldest_checkpoint = checkpoints[0]
+            oldest_path = os.path.join(save_dir, oldest_checkpoint)
+            print(f'Remove checkpoint: {oldest_path}')
+            # shutil.rmtree(oldest_path)
+            os.remove(oldest_path)
+
+
+def main(args):
+    args = args_post_init(args)
+    set_seed(args.seed)
+    if args.wandb_enable:
+        if args.resume_run_id is None:
+            wandb.init(project=args.wandb_project, name=args.wandb_name,
+                    config=args.__dict__)
+        else:
+            wandb.init(
+                project=args.wandb_project,
+                name=args.wandb_name,
+                config=args.__dict__,
+                id=args.resume_run_id,
+                resume="must"
+            )
+
+    if not os.path.exists(args.save_dir):
+        os.makedirs(args.save_dir)
+
+    model = create_gpt2_model(args.gpt2_size, args.sample_width, args.seq_length)
+    print(model.config)
+    total_params = sum(p.numel() for p in model.parameters())
+    print(f"Total parameters: {total_params:,}")
+    model.to(args.device)
+
+    _train_loader, _ = build_dataloader(args)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    scheduler = get_lr_scheduler(
+        optimizer,
+        warmup_steps=len(_train_loader) * int(0.1 * args.epochs),
+        total_steps=len(_train_loader) * args.epochs,
+    )
+    criterion = nn.BCELoss()
+
+    best_val_loss = float('inf')
+    best_val_loss_el = float('inf')
+    if args.patience == -1:
+        args.patience = float('inf')
+    patience = args.patience
+    assert patience == 15
+    count = 0
+    extra_counter = 0
+    extra_training_triggered = False
+
+    start_epoch = 0
+    if args.resume:
+        model, optimizer, scheduler, count, start_epoch, best_val_loss, best_val_loss_el = load_last_checkpoint(
+            model, optimizer, scheduler, args.save_dir
+        )
+
+    all_metrics = {
+        'train_loss_his': [],
+        'train_metric': [],
+        'val_metric': [],
+        'early_stop_metric': [],
+        'patience_metric': [],
+    }
+    # save local metric
+    for epoch in range(start_epoch, args.epochs):
+        print(f"==================== epoch: {epoch + 1} / {args.epochs} ===========================")
+        train_loader, val_loader = build_dataloader(args)
+
+        train_loss_his = train_epoch(model, train_loader, criterion, optimizer, scheduler, args)
+        all_metrics['train_loss_his'].append({epoch: train_loss_his})
+
+        train_loss, train_acc, train_auc = validation_epoch(model, train_loader, criterion, args, mode='train')
+        wandb_log({"epoch": epoch + 1, "train acc": train_acc}, args)
+        wandb_log({"epoch": epoch + 1, "train auc": train_auc}, args)
+        all_metrics['train_metric'].append({epoch: [train_loss, train_acc, train_auc]})
+
+        val_loss, val_acc, val_auc = validation_epoch(model, val_loader, criterion, args)
+        wandb_log({"epoch": epoch + 1, "val loss": val_loss}, args)
+        wandb_log({"epoch": epoch + 1, "val acc": val_acc}, args)
+        wandb_log({"epoch": epoch + 1, "val auc": val_auc}, args)
+        all_metrics['val_metric'].append({epoch: [val_loss, val_acc, val_auc]})
+
+        print(f"rule={args.rule}, k={args.k}")
+        print(train_loss, train_acc, train_auc)
+        print(val_loss, val_acc, val_auc)
+
+        if extra_training_triggered:
+            if val_loss >= 1e-3:
+                extra_training_triggered = False
+                extra_counter = 0
+            else:
+                extra_counter += 1
+                if extra_counter >= 500:
+                    print(f"Early stop due to validation loss < 1e-5 and 500 extra epochs at {epoch + 1} epoch!")
+                    wandb_log({"epoch": epoch + 1, "Early stop": epoch + 1}, args)
+                    all_metrics['early_stop_metric'].append(epoch)
+                    break
+        if val_loss < 1e-3 and not extra_training_triggered:
+            extra_training_triggered = True
+
+        # early stop
+        if (epoch + 1) % 100 == 0:
+            # val loss increasing or decreasing a few
+            if val_loss - best_val_loss_el >= -1e-4:
+                count += 1
+                if count > patience:
+                    print(f"Early stop at {epoch + 1} epoch!")
+                    wandb_log({"epoch": epoch + 1, "Early stop": epoch + 1}, args)
+                    all_metrics['early_stop_metric'].append(epoch)
+                    break
+            # val loss decreasing a lot
+            else:
+                best_val_loss_el = val_loss
+                count = 0
+        wandb_log({"epoch": epoch + 1, "patience count": count}, args)
+        all_metrics['patience_metric'].append({epoch: count})
+
+        # Save the best model
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            save_checkpoint(epoch + 1, count, model, optimizer, scheduler,
+                            best_val_loss, best_val_loss_el, args.save_dir, is_best=True)
+            delete_oldest_checkpoint(args.save_dir)
+            print(f'Best model saved with loss {best_val_loss}, at epoch {epoch + 1}')
+
+        save_checkpoint(epoch + 1, count, model, optimizer, scheduler, best_val_loss, best_val_loss_el, args.save_dir)
+        delete_oldest_checkpoint(args.save_dir)
+
+        with open(args.metrics_path, 'w', encoding='utf-8') as f:
+            json.dump(all_metrics, f, indent=2)
+
+    with open(args.metrics_path, 'w', encoding='utf-8') as f:
+        json.dump(all_metrics, f, indent=2)
+    wandb.finish()
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Train a GPT-2 model on cellular automaton data')
+    parser.add_argument('--gpt2_size', type=str, default='small', help='the size of gpt2 model')
+    parser.add_argument('--rule', type=int, required=True, help='Rule number for the cellular automaton')
+    parser.add_argument('--k', type=int, required=True, help='Interval for outputting time points')
+    parser.add_argument('--width', type=int, default=1000, help='Width of the cellular automaton')
+    parser.add_argument('--sample_width', type=int, default=100, help='Width of the samples')
+    parser.add_argument('--seq_length', type=int, default=60, help='Sequence length for training')
+    parser.add_argument('--steps', type=int, default=1000, help='Number of steps for the cellular automaton')
+    parser.add_argument('--batch_size', type=int, default=64, help='Batch size for training')
+    parser.add_argument('--micro_batch_size', type=int, default=None, help='Micro batch size for training')
+    parser.add_argument('--lr', type=float, default=2e-6, help='Learning rate for training')
+    parser.add_argument('--epochs', type=int, default=10000, help='Number of epochs for training')
+    parser.add_argument('--automation_type', type=str, default='random',
+                        help='Type of cellular automaton creation to use')
+    parser.add_argument('--num_samples', type=int, default=50,
+                        help='Number of samples to generate in each time t cellular automaton')
+    parser.add_argument('--seed', type=int, default=1234, help='Sequence length for training')
+    parser.add_argument('--device', type=int, default=0, help='CUDA device index (0-5)')
+    parser.add_argument('--save_dir', type=str, required=True)
+    parser.add_argument('--patience', type=int, default=15)
+    parser.add_argument('--wandb_project', type=str, default='cellular_automata')
+    parser.add_argument('--wandb_name', type=str, default=None)
+    parser.add_argument('--wandb_enable', type=bool, default=True)
+    parser.add_argument('--resume', action='store_true')
+    parser.add_argument('--resume_run_id', type=str, default=None)
+
+    args = parser.parse_args()
+    main(args)
+
+# nohup python pretrain.py --gpt2_size xl --rule 150 --k 3 --micro_batch_size 8 --save_dir k3-256-01/rule150  --device 0 --wandb_enable False  > k3-256-01/train_150_3_xl.log 2>&1 &
+
+
+ 
+
+========== FILE: Pretrain/utils.py ==========
+
+import math
+import random
+import numpy as np
+from dataclasses import dataclass
+
+import torch
+import torch.nn as nn
+from torch.optim.lr_scheduler import LambdaLR
+from transformers import GPT2Model, GPT2Config
+
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+
+def get_lr_scheduler(optimizer, warmup_steps, total_steps, decrease_mode='cosin'):
+    def lr_lambda(current_step: int):
+        if current_step < warmup_steps:
+            return float(current_step) / float(max(1, warmup_steps))
+        else:
+            if decrease_mode == 'cosin':
+                progress = float(current_step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+                return 0.5 * (1.0 + math.cos(math.pi * progress))
+            elif decrease_mode == 'linear':
+                progress = float(current_step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+                return 1.0 - progress
+            elif decrease_mode == 'const':
+                return 1.0
+
+    return LambdaLR(optimizer, lr_lambda=lr_lambda)
+
+
+def cellular_automaton(rule, width=100, init='random', steps=100, k=1):
+    """
+    Simulates an elementary cellular automaton.
+
+    Parameters:
+    rule (int): The rule number (0-255).
+    width (int): The width of the domain (number of cells). Default is 100.
+    init (str or list): Initialization method ('random', 'zeros', 'ones', or a list). Default is 'random'.
+    steps (int): Number of time steps to simulate. Default is 100.
+    k (int): Interval for outputting time points. Default is 1 (every time point).
+
+    Returns:
+    list: A list of states at specified time intervals.
+    """
+    rule_bin = np.array([int(x) for x in np.binary_repr(rule, width=8)], dtype=np.uint8)
+    if init == 'random':
+        state = np.random.randint(2, size=width)
+    elif init == 'zeros':
+        state = np.zeros(width, dtype=np.uint8)
+    elif init == 'ones':
+        state = np.ones(width, dtype=np.uint8)
+    elif isinstance(init, list) and len(init) == width:
+        state = np.array(init, dtype=np.uint8)
+    else:
+        raise ValueError("Invalid initialization method")
+
+    states = [state.copy()]
+    for _ in range(steps):
+        new_state = np.zeros(width, dtype=np.uint8)
+        for i in range(width):
+            left = state[(i - 1) % width]
+            center = state[i]
+            right = state[(i + 1) % width]
+            neighborhood = (left << 2) | (center << 1) | right
+            new_state[i] = rule_bin[7 - neighborhood]
+        state = new_state.copy()
+        if (_ + 1) % k == 0:
+            states.append(state.copy())
+
+    return states
+
+
+def create_sequences_for_pretrain(states, seq_length, k):
+    """
+    Args:
+        states: list of length 'steps'
+        seq_length: window of timepoints to select for 1 LLM input sample
+        k: how many timepoints in future to skip
+    """
+    sequences = []
+    targets = []
+    for i in range(0, len(states) - seq_length * k, k):
+        seq = states[i:i + seq_length * k:k]
+        target = states[i + k:i + seq_length * k + k:k]  # shifted up 1 sequence element
+        sequences.append(seq)
+        targets.append(target)
+    return np.array(sequences), np.array(targets)  # [num_dataset_samples, 60, automata_width]
+
+
+def create_attention_mask(seq_length):
+    """
+    Create a lower triangular attention mask.
+    Args:
+        seq_length: int
+    """
+    mask = torch.tril(torch.ones((seq_length, seq_length))).unsqueeze(0).unsqueeze(0)
+    return mask
+
+
+class CustomGPT2Model(nn.Module):
+    def __init__(self, input_size, n_embd, n_layer, n_head, seq_length):
+        super(CustomGPT2Model, self).__init__()
+        self.config = GPT2Config(
+            n_embd=n_embd,
+            vocab_size=1,
+            n_layer=n_layer,
+            n_head=n_head,
+            n_positions=seq_length,
+        )
+        _gpt2 = GPT2Model(self.config)
+        self.wpe = _gpt2.wpe
+        self.gpt2 = _gpt2.h
+        self.dropout = _gpt2.drop
+        self.ln_f = _gpt2.ln_f
+
+        self.seq_length = seq_length
+        self.input_projection = nn.Linear(input_size, n_embd)
+        self.output_layer = nn.Linear(n_embd, input_size)
+
+    def forward(self, input_sequences, attention_mask, output_attentions=False):
+        """
+        Parameters:
+        input_sequences: (b, l, [100])
+
+        Returns:
+        logits: (b, l, [100]), no sigmoid activation
+        """
+        b, l, _ = input_sequences.shape
+        input_embeds = self.input_projection(input_sequences)
+        hidden_states = self.dropout(self.wpe(torch.arange(l).to(input_sequences.device)) + input_embeds)
+        attentions = []
+        for i in range(self.config.n_layer):
+            out = self.gpt2[i](hidden_states, attention_mask=attention_mask, output_attentions=output_attentions)
+            hidden_states = out[0]
+            attentions.append(out[1])
+        hidden_states = self.ln_f(hidden_states)
+
+        logits = self.output_layer(hidden_states)
+        if output_attentions:
+            return logits, attentions
+        return logits
+
+
+@dataclass
+class CustomGPT2Config:
+    input_size: int
+    seq_length: int
+    n_layer: int = 12
+    n_head: int = 12
+    n_embd: int = 768
+
+
+gpt2_config_map = {
+    'tiny': dict(n_layer=1, n_head=1, n_embd=64),  # 857,188
+    'small': dict(n_layer=12, n_head=12, n_embd=768),  # 124M params, 124,439,808 - 38597376 | 85,256,548
+    'large': dict(n_layer=36, n_head=20, n_embd=1280),  # 774M params;                      | 708,724,580
+}
+
+
+def create_gpt2_model(gpt2name, input_size=100, seq_length=60):
+    config = CustomGPT2Config(input_size, seq_length, **gpt2_config_map[gpt2name])
+    return CustomGPT2Model(
+        config.input_size,
+        config.n_embd,
+        config.n_layer,
+        config.n_head,
+        config.seq_length,
+    )
+
+
+class RGBModel(nn.Module):
+    def __init__(self, input_size, gpt2: CustomGPT2Model, num_classes=4):
+        """
+        :param input_size: sample width
+        :param gpt2:  CustomGPT2Model
+        :param num_classes:
+        """
+        super().__init__()
+        self.num_classes = num_classes
+        self.input_proj = nn.Linear(input_size, gpt2.input_projection.in_features)
+        self.output = nn.Linear(gpt2.output_layer.out_features, gpt2.output_layer.out_features * num_classes)
+        self.gpt2 = gpt2
+        self.freeze()
+
+    def forward(self, x, attention_mask):
+        b, l, _ = x.size()
+        x = self.input_proj(x)
+        x = self.gpt2(x, attention_mask)
+        return self.output(x).reshape(b, l, -1, self.num_classes)
+
+    def freeze(self):
+        for param in self.gpt2.parameters():
+            param.requires_grad = False
+
+
+if __name__ == '__main__':
+    for size in ['small', 'medium', 'large']:
+        model = create_gpt2_model(size)
+        print(model)
+        print(model.config)
+        print(f"Total parameters: {sum(p.numel() for p in model.parameters()):,}")
+        print('=' * 100)
+
+
+ 
+
