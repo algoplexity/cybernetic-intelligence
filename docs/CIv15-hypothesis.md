@@ -82,6 +82,58 @@ CIv15 evolves CIv14 into a **self-maintaining, recursively optimizing system**. 
 
 ---
 
-If you want, I can now **draw a CIv14 → CIv15 modular diagram** with all encoders, monitors, synthesis heads, decompressor, controller loops, and program library flows fully annotated for implementation. This would mirror the CIv13 diagram style.
+### **Substrate Variants**
 
-Do you want me to do that next?
+#### **Symbolic Substrate**
+
+* **Mechanistic Role:**
+
+  * Represents minimal generative programs that describe the system's behavior.
+  * Supports self-editing and adaptation through the program library, enabling the system to modify its own structure in response to environmental changes.
+* **Key Signals:**
+
+  * **φ (Program Length):** Indicates the complexity of the symbolic representation; shorter programs are preferred for efficiency.
+  * **Δφ (Program Length Change):** Tracks modifications in program length, reflecting adaptations to new regimes.
+  * **Edit Acceptance Metrics:** Evaluates the success of proposed edits based on improvements in compressibility, utility, and forecast accuracy.
+* **Integration with Other Substrates:**
+
+  * Provides the foundational structure for the system's behavior, guiding the generation of latent representations and informing forecasting models.
+  * Interacts with the latent substrate to ensure that adaptations are consistent with observed data patterns.
+
+#### **Latent Substrate**
+
+* **Mechanistic Role:**
+
+  * Encodes the statistical properties of sequences, capturing underlying patterns and dynamics.
+  * Assesses the impact of symbolic edits on data compression and forecasting accuracy.
+* **Key Signals:**
+
+  * **ΔBDM (Bayesian Description Length Change):** Measures the effect of symbolic edits on the model's posterior distribution.
+  * **ΔMDL (Minimum Description Length Change):** Assesses changes in the model's ability to compress data, indicating the efficiency of symbolic adaptations.
+  * **Forecast Error (MSE):** Evaluates the accuracy of predictions post-edit, guiding further adaptations.
+* **Integration with Other Substrates:**
+
+  * Provides feedback on the effectiveness of symbolic edits, informing the program library's evolution.
+  * Collaborates with the symbolic substrate to ensure that adaptations lead to improved system performance.
+
+#### **Unified Substrate**
+
+* **Mechanistic Role:**
+
+  * Orchestrates the integration of symbolic and latent representations to facilitate adaptive behavior.
+  * Evaluates candidate actions based on decompression forecasts, selecting those that maximize utility and align with system goals.
+* **Key Signals:**
+
+  * **Utility Function (U):** Combines ΔBDM, ΔMDL, and forecast accuracy to evaluate the desirability of candidate actions.
+  * **Action Selection Metrics:** Assesses the success of chosen actions based on their impact on system performance and adaptability.
+  * **Regime Adaptation Indicators:** Monitors the system's ability to adjust to new regimes, ensuring continued viability.
+* **Integration with Other Substrates:**
+
+  * Serves as the decision-making center, integrating inputs from symbolic and latent substrates to select optimal actions.
+  * Ensures that adaptations are coherent and lead to improved system performance, maintaining internal consistency and external utility.
+
+---
+
+
+
+
