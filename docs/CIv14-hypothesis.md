@@ -83,4 +83,56 @@ CIv14 extends CIv13’s symbolic-latent divergence detection into a **self-monit
 
 ---
 
+### **Substrate Variants**
+
+#### **Symbolic Substrate**
+
+* **Mechanistic Role:**
+
+  * Encodes discrete causal structures through compressive motifs, capturing minimal generative programs.
+  * Functions as a model-agnostic detection layer for algorithmic, topological, and semantic regime shifts.
+* **Key Signals:**
+
+  * **φ (Program Length):** Measures the length of the minimal program required to generate a sequence. Shorter programs indicate higher compressibility and potential for generalization.
+  * **Δφ (Program Length Change):** Tracks changes in program length over time, signaling shifts in the underlying generative process.
+  * **Divergence Metrics:** Quantifies the divergence between symbolic representations and latent encodings, indicating structural breaks or regime changes.
+* **Integration with Other Substrates:**
+
+  * Provides interpretable outputs (e.g., φ-scored sketches) that inform and guide the adaptation of latent models.
+  * Works in tandem with the latent substrate to detect and explain regime shifts, facilitating a comprehensive understanding of system dynamics.
+
+#### **Latent Substrate**
+
+* **Mechanistic Role:**
+
+  * Captures compressed dynamics of sequences, encoding fluid semantic continuity via distributed representations.
+  * Monitors structural complexity and stability, identifying anomalies or shifts in the data stream.
+* **Key Signals:**
+
+  * **ΔBDM (Bayesian Description Length Change):** Measures changes in the description length of the model's posterior distribution, indicating shifts in data structure.
+  * **ΔMDL (Minimum Description Length Change):** Assesses changes in the model's ability to compress data, reflecting the emergence of new patterns or regimes.
+  * **Forecast Error (MSE):** Evaluates the accuracy of predictions, with increased error signaling potential regime changes.
+* **Integration with Other Substrates:**
+
+  * Provides statistical insights that complement symbolic representations, enhancing the system's ability to detect and adapt to structural changes.
+  * Collaborates with the symbolic substrate to generate and evaluate potential explanations for observed shifts.
+
+#### **Unified Substrate**
+
+* **Mechanistic Role:**
+
+  * Integrates symbolic and latent representations to form a cohesive understanding of system dynamics.
+  * Facilitates the forecasting of future states and the generation of interpretable outputs for external agents.
+* **Key Signals:**
+
+  * **Regime Probability:** Combines ΔBDM, ΔMDL, and divergence metrics to assess the likelihood of a regime shift.
+  * **Forecasted Sequences:** Generated through decompression of symbolic sketches, providing potential future trajectories.
+  * **φ-Scored Outputs:** Represents the interpretability and quality of generated outputs, guiding stakeholder interactions.
+* **Integration with Other Substrates:**
+
+  * Serves as the interface between internal processing and external communication, ensuring that the system's outputs are both accurate and understandable.
+  * Enables a feedback loop where external inputs can influence internal representations, promoting adaptive behavior.
+
+---
+
 
