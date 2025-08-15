@@ -1,5 +1,4 @@
----
----
+___
 
 # **Unified Cybernetic Intelligence Hypothesis (CIv13–15)**
 
