@@ -1,4 +1,4 @@
-# **Unified Cybernetic Intelligence Hypothesis (CIv13–15)**
+**Unified Cybernetic Intelligence Hypothesis (CIv13–15)**
 
 ### **Hypothesis Statement**
 
