@@ -3,19 +3,14 @@ layout: default
 title: Home
 ---
 
-# Cybernetic Intelligence
-
 Welcome to the open exploration of viable human-AI systems.
 
-## 📄 Articles
+## Articles
 
 <ul>
-  {% assign pages = site.pages | sort: 'title' %}
-  {% for p in pages %}
-    {% if p.title and p.url != "/" %}
-      <li>
-        <a href="{{ p.url | relative_url }}">{{ p.title }}</a>
-      </li>
+  {% for page in site.pages %}
+    {% if page.title and page.url != "/" %}
+      <li><a href="{{ site.baseurl }}{{ page.url }}">{{ page.title }}</a></li>
     {% endif %}
   {% endfor %}
 </ul>
