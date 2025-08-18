@@ -1,4 +1,7 @@
 ---
+layout: default
+title: Solution Architecture
+---
 
 ## **C4 Solution Architecture: CIv14 Cybernetic Divergence Detector**
 
