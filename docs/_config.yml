@@ -1,3 +1,9 @@
+# _config.yml
+
 theme: jekyll-theme-minimal
 title: Cybernetic Intelligence
 description: An open exploration of viable human-AI systems.
+
+# Add these two lines:
+url: "https://algoplexity.github.io"
+baseurl: "/cybernetic-intelligence"
