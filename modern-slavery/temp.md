@@ -1,54 +1,40 @@
---- Starting Month 2 Analysis: Late and Non-Publishable Submissions ---
----------------------------------------------------------------------------
-KeyError                                  Traceback (most recent call last)
-File /opt/conda/lib/python3.12/site-packages/pandas/core/indexes/base.py:3812, in Index.get_loc(self, key)
-   3811 try:
--> 3812     return self._engine.get_loc(casted_key)
-   3813 except KeyError as err:
+# This script assumes that df_never_lodged and df_single_lodgers_enriched
+# still exist in your notebook's memory from the full Month 1 run.
 
-File pandas/_libs/index.pyx:167, in pandas._libs.index.IndexEngine.get_loc()
+# --- 5. Final Deliverable Preparation and Export (FINAL Corrected Version) ---
 
-File pandas/_libs/index.pyx:196, in pandas._libs.index.IndexEngine.get_loc()
+# This list is unchanged.
+non_lodger_columns = [ 'ABN', 'Entity Name', 'Total Income', 'Entity size', 'ASX listed?', 'ASX300', 'Industry_desc', 'Division_Description', 'State', 'Mn_bus_addr_ln_1', 'Mn_bus_sbrb', 'Mn_bus_pc', 'Ent_eml', 'ACN' ]
 
-File pandas/_libs/hashtable_class_helper.pxi:7088, in pandas._libs.hashtable.PyObjectHashTable.get_item()
+# **FINAL CORRECTED AND EXPANDED COLUMN LIST FOR SINGLE LODGERS**
+single_lodger_columns = [
+    'Reporting entities', 'extracted_abn', 'abn', 'company_name', 'Reporting Period', 'Submitted',
+    # --- HERE IS THE CRITICAL ADDITION ---
+    'Submitted more than 6 months?',
+    'Status', 'Voluntary?', 'Revenue', 'abn_regn_dt', 'abn_cancn_dt', 'industry_desc',
+    'last_submission_dttm', 'num_compliant', 'num_non_compliant', 'expected_due_date',
+    'nc_criteria_1a', 'nc_criteria_1b', 'nc_criteria_1c', 'nc_criteria_1d', 'nc_criteria_1e', 'nc_criteria_1f'
+]
 
-File pandas/_libs/hashtable_class_helper.pxi:7096, in pandas._libs.hashtable.PyObjectHashTable.get_item()
+# This logic safely selects only the columns that exist from the lists above.
+final_non_lodger_cols = [col for col in non_lodger_columns if col in df_never_lodged.columns]
+final_single_lodger_cols = [col for col in single_lodger_columns if col in df_single_lodgers_enriched.columns]
 
-KeyError: 'Submitted more than 6 months?'
+# Create the final DataFrames for export.
+final_non_lodgers_df = df_never_lodged[final_non_lodger_cols]
+final_single_lodgers_df = df_single_lodgers_enriched[final_single_lodger_cols]
 
-The above exception was the direct cause of the following exception:
+print("Step 4/6: Final datasets prepared for export with final column lists.")
 
-KeyError                                  Traceback (most recent call last)
-Cell In[14], line 9
-      1 print("\n--- Starting Month 2 Analysis: Late and Non-Publishable Submissions ---")
-      3 # --- 1. Prepare the Data ---
-      4 # The df_single_lodgers DataFrame from the V2 deliverable is our source.
-      5 # Let's ensure the relevant columns are clean and ready for analysis.
-      6 # We'll work with the full cohort of 4198 single lodgers.
-      7 
-      8 # Handle potential missing values in key columns
-----> 9 df_single_lodgers['Submitted more than 6 months?'].fillna('Unknown', inplace=True)
-     10 df_single_lodgers['Status'].fillna('Unknown', inplace=True)
-     11 print(f"Step 1/4: Data prepared for analyzing {len(df_single_lodgers)} single-lodger entities.")
+# --- 6. Final Export and Summary Report ---
+output_filename_final = 'Month_1_Analysis_Deliverable_Automated_V3.xlsx'
+with pd.ExcelWriter(output_filename_final) as writer:
+    final_non_lodgers_df.to_excel(writer, sheet_name='Never Lodged Entities', index=False)
+    final_single_lodgers_df.to_excel(writer, sheet_name='Single Lodgement Entities', index=False)
 
-File /opt/conda/lib/python3.12/site-packages/pandas/core/frame.py:4107, in DataFrame.__getitem__(self, key)
-   4105 if self.columns.nlevels > 1:
-   4106     return self._getitem_multilevel(key)
--> 4107 indexer = self.columns.get_loc(key)
-   4108 if is_integer(indexer):
-   4109     indexer = [indexer]
-
-File /opt/conda/lib/python3.12/site-packages/pandas/core/indexes/base.py:3819, in Index.get_loc(self, key)
-   3814     if isinstance(casted_key, slice) or (
-   3815         isinstance(casted_key, abc.Iterable)
-   3816         and any(isinstance(x, slice) for x in casted_key)
-   3817     ):
-   3818         raise InvalidIndexError(key)
--> 3819     raise KeyError(key) from err
-   3820 except TypeError:
-   3821     # If we have a listlike key, _check_indexing_error will raise
-   3822     #  InvalidIndexError. Otherwise we fall through and re-raise
-   3823     #  the TypeError.
-   3824     self._check_indexing_error(key)
-
-KeyError: 'Submitted more than 6 months?'
+print(f"Step 5/6: Data successfully exported to '{output_filename_final}'.")
+print("\n--- Month 1 Deliverable Re-generated: Final Summary (Step 6/6) ---")
+print(f"Identified {len(final_non_lodgers_df)} potential non-lodger entities.")
+print(f"Identified {len(final_single_lodgers_df)} single-lodgement entities.")
+print(f"The new single-lodger sheet now contains {len(final_single_lodgers_df.columns)} columns.")
+print("--- You are now ready to re-run the final Month 2 analysis script. ---")
