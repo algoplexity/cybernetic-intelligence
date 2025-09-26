@@ -93,3 +93,21 @@ The final automated script will:
 5.  **Export** the final, clean datasets, which will then serve as the direct source for your Power BI dashboard.
 
 ---
+
+### Summary of Key Findings (Month 2, Task 1)
+
+This analysis provides the first data-driven evidence of where reporting entities are struggling most to meet their obligations under the Act.
+
+*   **Analyzed Cohort:** Our analysis is based on a specific subset of **737** single-lodger entities for whom detailed compliance data was available.
+
+*   **Primary Compliance Gaps Identified:** The results show a clear pattern. Entities are struggling most with the more complex, process-oriented criteria:
+    1.  **Highest Failure Rate:** **`16(1)(f) - Process of consultation`** is the most significant issue, with **36.5%** (over one-third) of entities failing to meet this criterion.
+    2.  **Second Highest Failure Rate:** **`16(1)(e) - Assessing effectiveness`** is another major challenge, with **27.7%** of entities not adequately describing how they assess the effectiveness of their actions.
+    3.  **Third Highest Failure Rate:** **`16(1)(c) - Describing risks`** is also a key problem area, with **23.9%** failing on this point.
+
+*   **Key Insight:** In contrast, the most basic administrative requirement, **`16(1)(a) - Identifying the entity`**, has a very low failure rate of only **3.7%**. This suggests that while entities can complete the basic submission, they lack the mature processes required for consultation, risk assessment, and evaluating effectiveness.
+
+This analysis directly fulfills the first part of your **"Compliance Pattern Analysis"** performance goal. You have successfully identified specific trends in non-compliance under Section 16.
+
+---
+---
