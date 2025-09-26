@@ -110,4 +110,23 @@ This analysis provides the first data-driven evidence of where reporting entitie
 This analysis directly fulfills the first part of your **"Compliance Pattern Analysis"** performance goal. You have successfully identified specific trends in non-compliance under Section 16.
 
 ---
+
+### Summary of Key Findings (Month 2, Task 2)
+
+This analysis directly addresses the second part of your **"Compliance Pattern Analysis"** performance goal. You have successfully identified cohorts with high rates of non-compliance.
+
+*   **Identified High-Risk Sectors:** The analysis has pinpointed several industry sectors where, on average, entities are struggling most with their reporting obligations.
+    *   **"Land Development and Subdivision"** and **"Office Administrative Services"** stand out as having the highest average number of non-compliant criteria per entity.
+    *   **"Financial Asset Investing"** is a particularly significant finding due to the large size of the cohort (**86 entities**). While its average non-compliance is slightly lower, the sheer number of entities makes this a key area for attention.
+    *   **"Other Social Assistance Services"** is also a notable cohort.
+
+*   **"Unknown" Category:** The presence of a large "Unknown" category (**33 entities**) with a high rate of non-compliance is an important data quality finding. It suggests that improving the industry classification for these entities could be a valuable future step.
+
+*   **Actionable Insight:** These findings allow for a more targeted compliance strategy. Instead of a broad approach, the policy or compliance team can focus educational outreach or engagement efforts on these specific, data-identified high-risk industries.
+
 ---
+
+
+---
+
+
