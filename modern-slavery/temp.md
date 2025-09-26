@@ -1,33 +1,39 @@
---- Starting FINAL Month 2 Analysis: Late and Non-Publishable Submissions (Corrected) ---
-Step 1/4: Data prepared for analyzing 4198 single-lodger entities.
----------------------------------------------------------------------------
-KeyError                                  Traceback (most recent call last)
-Cell In[18], line 12
-      8 print(f"Step 1/4: Data prepared for analyzing {total_entities} single-lodger entities.")
-     10 # --- 2. LATE SUBMISSIONS: Use the Manual Recalculation Method ---
-     11 # This is our validated ground truth.
----> 12 df_validation = df_single_lodgers[['abn', 'Period end date', 'Submitted']].copy()
-     13 df_validation['Period end date'] = pd.to_datetime(df_validation['Period end date'], errors='coerce')
-     14 df_validation['Submitted'] = pd.to_datetime(df_validation['Submitted'], errors='coerce')
+# This script assumes df_never_lodged and df_single_lodgers_enriched
+# still exist in your notebook's memory from the full Month 1 run.
 
-File /opt/conda/lib/python3.12/site-packages/pandas/core/frame.py:4113, in DataFrame.__getitem__(self, key)
-   4111     if is_iterator(key):
-   4112         key = list(key)
--> 4113     indexer = self.columns._get_indexer_strict(key, "columns")[1]
-   4115 # take() does not accept boolean indexers
-   4116 if getattr(indexer, "dtype", None) == bool:
+# --- 5. Final Deliverable Preparation and Export (FINAL V4 Corrected Version) ---
 
-File /opt/conda/lib/python3.12/site-packages/pandas/core/indexes/base.py:6212, in Index._get_indexer_strict(self, key, axis_name)
-   6209 else:
-   6210     keyarr, indexer, new_indexer = self._reindex_non_unique(keyarr)
--> 6212 self._raise_if_missing(keyarr, indexer, axis_name)
-   6214 keyarr = self.take(indexer)
-   6215 if isinstance(key, Index):
-   6216     # GH 42790 - Preserve name from an Index
+non_lodger_columns = [ 'ABN', 'Entity Name', 'Total Income', 'Entity size', 'ASX listed?', 'ASX300', 'Industry_desc', 'Division_Description', 'State', 'Mn_bus_addr_ln_1', 'Mn_bus_sbrb', 'Mn_bus_pc', 'Ent_eml', 'ACN' ]
 
-File /opt/conda/lib/python3.12/site-packages/pandas/core/indexes/base.py:6264, in Index._raise_if_missing(self, key, indexer, axis_name)
-   6261     raise KeyError(f"None of [{key}] are in the [{axis_name}]")
-   6263 not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())
--> 6264 raise KeyError(f"{not_found} not in index")
+# **FINAL COMPLETE COLUMN LIST FOR SINGLE LODGERS**
+single_lodger_columns = [
+    'Reporting entities', 'extracted_abn', 'abn', 'company_name',
+    'Reporting Period',
+    # --- HERE ARE THE CRITICAL ADDITIONS ---
+    'Period start date', 'Period end date',
+    'Submitted', 'Submitted more than 6 months?',
+    'Status', 'Voluntary?', 'Revenue', 'abn_regn_dt', 'abn_cancn_dt', 'industry_desc',
+    'last_submission_dttm', 'num_compliant', 'num_non_compliant', 'expected_due_date',
+    'nc_criteria_1a', 'nc_criteria_1b', 'nc_criteria_1c', 'nc_criteria_1d', 'nc_criteria_1e', 'nc_criteria_1f'
+]
 
-KeyError: "['Period end date'] not in index"
+final_non_lodger_cols = [col for col in non_lodger_columns if col in df_never_lodged.columns]
+final_single_lodger_cols = [col for col in single_lodger_columns if col in df_single_lodgers_enriched.columns]
+
+final_non_lodgers_df = df_never_lodged[final_non_lodger_cols]
+final_single_lodgers_df = df_single_lodgers_enriched[final_single_lodger_cols]
+
+print("Step 4/6: Final datasets prepared for export with the complete column list.")
+
+# --- 6. Final Export and Summary Report ---
+output_filename_final = 'Month_1_Analysis_Deliverable_Automated_V4.xlsx'
+with pd.ExcelWriter(output_filename_final) as writer:
+    final_non_lodgers_df.to_excel(writer, sheet_name='Never Lodged Entities', index=False)
+    final_single_lodgers_df.to_excel(writer, sheet_name='Single Lodgement Entities', index=False)
+
+print(f"Step 5/6: Data successfully exported to '{output_filename_final}'.")
+print("\n--- Month 1 Deliverable Re-generated: Final Summary (Step 6/6) ---")
+print(f"Identified {len(final_non_lodgers_df)} potential non-lodger entities.")
+print(f"Identified {len(final_single_lodgers_df)} single-lodgement entities.")
+print(f"The new single-lodger sheet now contains {len(final_single_lodgers_df.columns)} columns.")
+print("--- You are now ready to re-run the final Month 2 analysis script. ---")
