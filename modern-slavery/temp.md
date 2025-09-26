@@ -1,44 +1,54 @@
-print("\n--- Starting Month 2 Analysis: Late and Non-Publishable Submissions ---")
+--- Starting Month 2 Analysis: Late and Non-Publishable Submissions ---
+---------------------------------------------------------------------------
+KeyError                                  Traceback (most recent call last)
+File /opt/conda/lib/python3.12/site-packages/pandas/core/indexes/base.py:3812, in Index.get_loc(self, key)
+   3811 try:
+-> 3812     return self._engine.get_loc(casted_key)
+   3813 except KeyError as err:
 
-# --- 1. Prepare the Data ---
-# The df_single_lodgers DataFrame from the V2 deliverable is our source.
-# Let's ensure the relevant columns are clean and ready for analysis.
-# We'll work with the full cohort of 4198 single lodgers.
+File pandas/_libs/index.pyx:167, in pandas._libs.index.IndexEngine.get_loc()
 
-# Handle potential missing values in key columns
-df_single_lodgers['Submitted more than 6 months?'].fillna('Unknown', inplace=True)
-df_single_lodgers['Status'].fillna('Unknown', inplace=True)
-print(f"Step 1/4: Data prepared for analyzing {len(df_single_lodgers)} single-lodger entities.")
+File pandas/_libs/index.pyx:196, in pandas._libs.index.IndexEngine.get_loc()
 
-# --- 2. Analyze Late Submissions ---
-# The 'Submitted more than 6 months?' column should directly answer this.
-# We'll count the occurrences of 'Yes'.
-late_submission_counts = df_single_lodgers['Submitted more than 6 months?'].value_counts()
-late_count = late_submission_counts.get('Yes', 0) # Use .get() to handle cases where no 'Yes' exists
-print("Step 2/4: Calculated the number of late submissions.")
+File pandas/_libs/hashtable_class_helper.pxi:7088, in pandas._libs.hashtable.PyObjectHashTable.get_item()
 
-# --- 3. Analyze Non-Publishable Submissions ---
-# We will look for statements with a status of 'Not Publishable'.
-# This directly identifies entities that failed to meet the bar for publication.
-submission_status_counts = df_single_lodgers['Status'].value_counts()
-not_publishable_count = submission_status_counts.get('Not Publishable', 0)
-print("Step 3/4: Calculated the number of non-publishable submissions.")
+File pandas/_libs/hashtable_class_helper.pxi:7096, in pandas._libs.hashtable.PyObjectHashTable.get_item()
 
-# --- 4. Report the Findings ---
-print("Step 4/4: Generating final summary report.")
-total_entities = len(df_single_lodgers)
+KeyError: 'Submitted more than 6 months?'
 
-print("\n--- Month 2: Submission Timeliness and Outcome Summary ---")
-print(f"Analysis based on all {total_entities} single-lodger entities.")
-print("-----------------------------------------------------------")
+The above exception was the direct cause of the following exception:
 
-if total_entities > 0:
-    late_percentage = (late_count / total_entities) * 100
-    not_publishable_percentage = (not_publishable_count / total_entities) * 100
-    print(f"Late Submissions (Over 6 months): {late_count} entities ({late_percentage:.1f}%)")
-    print(f"Non-Publishable Submissions:      {not_publishable_count} entities ({not_publishable_percentage:.1f}%)")
-else:
-    print("No entities found to analyze.")
+KeyError                                  Traceback (most recent call last)
+Cell In[14], line 9
+      1 print("\n--- Starting Month 2 Analysis: Late and Non-Publishable Submissions ---")
+      3 # --- 1. Prepare the Data ---
+      4 # The df_single_lodgers DataFrame from the V2 deliverable is our source.
+      5 # Let's ensure the relevant columns are clean and ready for analysis.
+      6 # We'll work with the full cohort of 4198 single lodgers.
+      7 
+      8 # Handle potential missing values in key columns
+----> 9 df_single_lodgers['Submitted more than 6 months?'].fillna('Unknown', inplace=True)
+     10 df_single_lodgers['Status'].fillna('Unknown', inplace=True)
+     11 print(f"Step 1/4: Data prepared for analyzing {len(df_single_lodgers)} single-lodger entities.")
 
-print("-----------------------------------------------------------")
-print("--- Analysis Complete ---")
+File /opt/conda/lib/python3.12/site-packages/pandas/core/frame.py:4107, in DataFrame.__getitem__(self, key)
+   4105 if self.columns.nlevels > 1:
+   4106     return self._getitem_multilevel(key)
+-> 4107 indexer = self.columns.get_loc(key)
+   4108 if is_integer(indexer):
+   4109     indexer = [indexer]
+
+File /opt/conda/lib/python3.12/site-packages/pandas/core/indexes/base.py:3819, in Index.get_loc(self, key)
+   3814     if isinstance(casted_key, slice) or (
+   3815         isinstance(casted_key, abc.Iterable)
+   3816         and any(isinstance(x, slice) for x in casted_key)
+   3817     ):
+   3818         raise InvalidIndexError(key)
+-> 3819     raise KeyError(key) from err
+   3820 except TypeError:
+   3821     # If we have a listlike key, _check_indexing_error will raise
+   3822     #  InvalidIndexError. Otherwise we fall through and re-raise
+   3823     #  the TypeError.
+   3824     self._check_indexing_error(key)
+
+KeyError: 'Submitted more than 6 months?'
