@@ -1,46 +1,41 @@
-import numpy as np
+--- Starting Month 2 Analysis: Compliance by Industry Sector ---
+Step 1/4: Data prepared for industry analysis.
+Step 2/4: Calculated average non-compliance per industry.
+Step 3/4: Identified top 10 industries with highest average non-compliance.
+Step 4/4: Generating final summary report.
 
-print("\n--- Starting Month 2 Analysis: Compliance by Industry Sector ---")
+--- Month 2: Top 10 High-Risk Industries (by Avg. Non-Compliant Criteria) ---
+Analysis based on 737 single-lodger entities. Showing industries with 5 or more entities.
+--------------------------------------------------------------------------------
+                                        industry_desc  entity_count  \
+83                   Land Development and Subdivision             5   
+111                    Office Administrative Services             6   
+147                  Other Social Assistance Services            11   
+49                          Financial Asset Investing            86   
+215                                           Unknown            33   
+189                      Road and Bridge Construction             6   
+24                                 Clothing Retailing             6   
+108                Non-Residential Property Operators            15   
+106                          Non-Depository Financing             8   
+139  Other Machinery and Equipment Wholesaling n.e.c.             5   
 
-# --- 1. Prepare the Data ---
-# The df_with_compliance_data DataFrame is already in memory and contains the 737 entities.
-# We will use the 'industry_desc' column for grouping. Let's handle any missing industry descriptions.
-df_with_compliance_data['industry_desc'].fillna('Unknown', inplace=True)
-print("Step 1/4: Data prepared for industry analysis.")
+     avg_non_compliant_criteria  
+83                     1.000000  
+111                    0.833333  
+147                    0.818182  
+49                     0.767442  
+215                    0.696970  
+189                    0.666667  
+24                     0.666667  
+108                    0.666667  
+106                    0.625000  
+139                    0.600000  
+--------------------------------------------------------------------------------
+--- Analysis Complete ---
+/tmp/ipykernel_710/807058521.py:8: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
 
-# --- 2. Calculate Non-Compliance Rate per Industry ---
-# We will group by industry and calculate the average non-compliance rate.
-# We will also count the number of entities in each industry to ensure our analysis is meaningful.
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
 
-# First, create a total non-compliance score for each entity.
-# The 'num_non_compliant' column should already represent this.
-# If it doesn't exist, we can calculate it.
-if 'num_non_compliant' not in df_with_compliance_data.columns:
-    df_with_compliance_data['num_non_compliant'] = df_with_compliance_data[existing_criteria_cols].sum(axis=1)
 
-industry_summary = df_with_compliance_data.groupby('industry_desc').agg(
-    entity_count=('abn', 'count'),
-    total_non_compliance=('num_non_compliant', 'sum')
-).reset_index()
-
-# Calculate the average number of non-compliant criteria per entity in each industry
-industry_summary['avg_non_compliant_criteria'] = industry_summary['total_non_compliance'] / industry_summary['entity_count']
-print("Step 2/4: Calculated average non-compliance per industry.")
-
-# --- 3. Identify High-Risk Industries ---
-# We will filter for industries with a meaningful number of entities (e.g., 5 or more)
-# Then sort them to find those with the highest average non-compliance.
-meaningful_industries = industry_summary[industry_summary['entity_count'] >= 5]
-top_10_high_risk_industries = meaningful_industries.sort_values(by='avg_non_compliant_criteria', ascending=False).head(10)
-print("Step 3/4: Identified top 10 industries with highest average non-compliance.")
-
-# --- 4. Report the Findings ---
-print("Step 4/4: Generating final summary report.")
-print("\n--- Month 2: Top 10 High-Risk Industries (by Avg. Non-Compliant Criteria) ---")
-print("Analysis based on 737 single-lodger entities. Showing industries with 5 or more entities.")
-print("--------------------------------------------------------------------------------")
-# Set pandas to display the full industry name
-pd.set_option('display.max_colwidth', None)
-print(top_10_high_risk_industries[['industry_desc', 'entity_count', 'avg_non_compliant_criteria']])
-print("--------------------------------------------------------------------------------")
-print("--- Analysis Complete ---")
+  df_with_compliance_data['industry_desc'].fillna('Unknown', inplace=True)
