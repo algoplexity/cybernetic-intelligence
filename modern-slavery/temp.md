@@ -1,39 +1,45 @@
-# This script assumes df_never_lodged and df_single_lodgers_enriched
-# still exist in your notebook's memory from the full Month 1 run.
+import pandas as pd
 
-# --- 5. Final Deliverable Preparation and Export (FINAL V4 Corrected Version) ---
+print("\n--- Starting FINAL Month 2 Analysis: Late and Non-Publishable Submissions (Corrected) ---")
 
-non_lodger_columns = [ 'ABN', 'Entity Name', 'Total Income', 'Entity size', 'ASX listed?', 'ASX300', 'Industry_desc', 'Division_Description', 'State', 'Mn_bus_addr_ln_1', 'Mn_bus_sbrb', 'Mn_bus_pc', 'Ent_eml', 'ACN' ]
+# --- 1. Load the FINAL CORRECTED Data ---
+# Note: We are using the new V4 file path
+final_deliverable_path = 'Month_1_Analysis_Deliverable_Automated_V4.xlsx'
+df_single_lodgers = pd.read_excel(final_deliverable_path, sheet_name='Single Lodgement Entities')
+total_entities = len(df_single_lodgers)
+print(f"Step 1/4: Data prepared for analyzing {total_entities} single-lodger entities.")
 
-# **FINAL COMPLETE COLUMN LIST FOR SINGLE LODGERS**
-single_lodger_columns = [
-    'Reporting entities', 'extracted_abn', 'abn', 'company_name',
-    'Reporting Period',
-    # --- HERE ARE THE CRITICAL ADDITIONS ---
-    'Period start date', 'Period end date',
-    'Submitted', 'Submitted more than 6 months?',
-    'Status', 'Voluntary?', 'Revenue', 'abn_regn_dt', 'abn_cancn_dt', 'industry_desc',
-    'last_submission_dttm', 'num_compliant', 'num_non_compliant', 'expected_due_date',
-    'nc_criteria_1a', 'nc_criteria_1b', 'nc_criteria_1c', 'nc_criteria_1d', 'nc_criteria_1e', 'nc_criteria_1f'
-]
+# --- 2. LATE SUBMISSIONS: Use the Manual Recalculation Method ---
+df_validation = df_single_lodgers[['abn', 'Period end date', 'Submitted']].copy()
+df_validation['Period end date'] = pd.to_datetime(df_validation['Period end date'], errors='coerce')
+df_validation['Submitted'] = pd.to_datetime(df_validation['Submitted'], errors='coerce')
+df_validation.dropna(subset=['Period end date', 'Submitted'], inplace=True)
+df_validation['due_date'] = df_validation['Period end date'] + pd.DateOffset(months=6)
+df_validation['is_late_manual_calc'] = df_validation['Submitted'] > df_validation['due_date']
+manual_late_count = int(df_validation['is_late_manual_calc'].sum())
+print("Step 2/4: Manually recalculated late submissions for the single-lodger cohort.")
 
-final_non_lodger_cols = [col for col in non_lodger_columns if col in df_never_lodged.columns]
-final_single_lodger_cols = [col for col in single_lodger_columns if col in df_single_lodgers_enriched.columns]
+# --- 3. SUBMISSION STATUS: Report on Actual Values Found ---
+submission_status_counts = df_single_lodgers['Status'].value_counts()
+published_count = submission_status_counts.get('Published', 0)
+draft_count = submission_status_counts.get('Draft', 0)
+redraft_count = submission_status_counts.get('Redraft', 0)
+hidden_count = submission_status_counts.get('Hidden', 0)
+print("Step 3/4: Tallied counts for all actual submission statuses.")
 
-final_non_lodgers_df = df_never_lodged[final_non_lodger_cols]
-final_single_lodgers_df = df_single_lodgers_enriched[final_single_lodger_cols]
+# --- 4. Report the Corrected Findings ---
+print("Step 4/4: Generating final, corrected summary report.")
+print("\n--- Month 2: CORRECTED Submission Timeliness and Outcome Summary ---")
+print(f"Analysis based on all {total_entities} single-lodger entities.")
+print("-----------------------------------------------------------")
 
-print("Step 4/6: Final datasets prepared for export with the complete column list.")
+late_percentage = (manual_late_count / total_entities) * 100
+print(f"Late Submissions (Calculated): {manual_late_count} entities ({late_percentage:.1f}%)")
+print("\nSubmission Status Breakdown:")
+published_percentage = (published_count / total_entities) * 100
+other_status_percentage = ((draft_count + redraft_count + hidden_count) / total_entities) * 100
+print(f"- Published: {published_count} entities ({published_percentage:.1f}%)")
+print(f"- Other (Draft, Redraft, Hidden): {draft_count + redraft_count + hidden_count} entities ({other_status_percentage:.1f}%)")
 
-# --- 6. Final Export and Summary Report ---
-output_filename_final = 'Month_1_Analysis_Deliverable_Automated_V4.xlsx'
-with pd.ExcelWriter(output_filename_final) as writer:
-    final_non_lodgers_df.to_excel(writer, sheet_name='Never Lodged Entities', index=False)
-    final_single_lodgers_df.to_excel(writer, sheet_name='Single Lodgement Entities', index=False)
-
-print(f"Step 5/6: Data successfully exported to '{output_filename_final}'.")
-print("\n--- Month 1 Deliverable Re-generated: Final Summary (Step 6/6) ---")
-print(f"Identified {len(final_non_lodgers_df)} potential non-lodger entities.")
-print(f"Identified {len(final_single_lodgers_df)} single-lodgement entities.")
-print(f"The new single-lodger sheet now contains {len(final_single_lodgers_df.columns)} columns.")
-print("--- You are now ready to re-run the final Month 2 analysis script. ---")
+print("-----------------------------------------------------------")
+print("--- Analysis Complete ---")
