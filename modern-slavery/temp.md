@@ -1,61 +1,15 @@
-import pandas as pd
+--- Starting FINAL Month 3 Analysis: Systemic Risk Identification ---
+Step 1/5: All source data for associates and at-risk cohorts loaded successfully.
+Step 2/5: Consolidated 15958 associate records and 2379 at-risk ABNs.
+Step 3/5: Identified 1 links between associates and at-risk entities.
+Step 4/5: Calculated and ranked associates by number of connections to at-risk entities.
+Step 5/5: Generating final summary report.
 
-print("--- Starting FINAL Month 3 Analysis: Systemic Risk Identification ---")
-
-# --- 1. Load All Necessary Data Sources ---
-try:
-    assoc_non_lodger_df = pd.read_excel('ato_tax_transparency_non_lodger.xlsx', sheet_name='Associates')
-    assoc_single_lodger_df = pd.read_excel('lodge_once_cont.xlsx', sheet_name='associates')
-    month1_deliverable_path = 'Month_1_Analysis_Deliverable_Automated_V4.xlsx'
-    non_lodgers_df = pd.read_excel(month1_deliverable_path, sheet_name='Never Lodged Entities')
-    single_lodgers_df = pd.read_excel(month1_deliverable_path, sheet_name='Single Lodgement Entities')
-    print("Step 1/5: All source data for associates and at-risk cohorts loaded successfully.")
-except Exception as e:
-    print(f"ERROR: A required file or sheet could not be loaded. Details: {e}")
-    raise
-
-# --- 2. Consolidate Associates and At-Risk Cohorts ---
-assoc_non_lodger_df['abn'] = assoc_non_lodger_df['abn'].astype(str)
-assoc_single_lodger_df['abn'] = assoc_single_lodger_df['abn'].astype(str)
-non_lodgers_df['ABN'] = non_lodgers_df['ABN'].astype(str)
-single_lodgers_df['abn'] = single_lodgers_df['abn'].astype(str)
-master_associates_df = pd.concat([assoc_non_lodger_df, assoc_single_lodger_df]).drop_duplicates()
-at_risk_abns = set(non_lodgers_df['ABN']).union(set(single_lodgers_df['abn'].dropna()))
-print(f"Step 2/5: Consolidated {len(master_associates_df)} associate records and {len(at_risk_abns)} at-risk ABNs.")
-
-# --- 3. Link Associates to At-Risk Entities ---
-at_risk_associates_df = master_associates_df[master_associates_df['abn'].isin(at_risk_abns)].copy()
-print(f"Step 3/5: Identified {len(at_risk_associates_df)} links between associates and at-risk entities.")
-
-# --- 4. Identify and Rank High-Risk Associates ---
-at_risk_associates_df['assoc_org_nm'] = at_risk_associates_df['assoc_org_nm'].fillna('')
-at_risk_associates_df['assoc_gvn_nm'] = at_risk_associates_df['assoc_gvn_nm'].fillna('')
-at_risk_associates_df['assoc_fmly_nm'] = at_risk_associates_df['assoc_fmly_nm'].fillna('')
-at_risk_associates_df['associate_identifier'] = at_risk_associates_df.apply(
-    lambda row: row['assoc_org_nm'] if row['assoc_org_nm'] != '' else f"{row['assoc_gvn_nm']} {row['assoc_fmly_nm']}".strip(),
-    axis=1
-)
-
-# **THIS IS THE FIX:**
-# Convert the 'rltnshp_cd' column to string type to prevent the TypeError on join.
-at_risk_associates_df['rltnshp_cd'] = at_risk_associates_df['rltnshp_cd'].astype(str).replace('nan', 'Unknown')
-
-systemic_risk_summary = at_risk_associates_df.groupby('associate_identifier').agg(
-    entity_count=('abn', 'nunique'),
-    roles=('rltnshp_cd', lambda x: ', '.join(x.unique())) # This will now work correctly
-).reset_index()
-
-high_risk_associates = systemic_risk_summary[systemic_risk_summary['entity_count'] > 1].sort_values(
-    by='entity_count', ascending=False
-)
-print("Step 4/5: Calculated and ranked associates by number of connections to at-risk entities.")
-
-# --- 5. Report the Findings ---
-print("Step 5/5: Generating final summary report.")
-print("\n--- Month 3: Systemic Risk - Top Associates Linked to Multiple At-Risk Entities ---")
-print(f"Analysis identified {len(high_risk_associates)} associates linked to more than one at-risk entity.")
-print("------------------------------------------------------------------------------------")
-pd.set_option('display.max_colwidth', None)
-print(high_risk_associates.head(15))
-print("------------------------------------------------------------------------------------")
-print("--- Analysis Complete ---")
+--- Month 3: Systemic Risk - Top Associates Linked to Multiple At-Risk Entities ---
+Analysis identified 0 associates linked to more than one at-risk entity.
+------------------------------------------------------------------------------------
+Empty DataFrame
+Columns: [associate_identifier, entity_count, roles]
+Index: []
+------------------------------------------------------------------------------------
+--- Analysis Complete ---
