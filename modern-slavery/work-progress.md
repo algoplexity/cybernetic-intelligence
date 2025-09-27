@@ -126,6 +126,69 @@ This analysis directly addresses the second part of your **"Compliance Pattern A
 
 ---
 
+### **Implementing the 4-Layer National Risk Model**
+
+Here is a layer-by-layer implementation guide based on your existing data and automated pipeline.
+
+#### **Layer 1: The Statements (The Digital Foundation)**
+
+*   **What it is:** A single, structured, and queryable national database of all modern slavery reporting activity.
+*   **Implementation Status: 90% Complete.**
+    *   Your automated data pipeline (the six steps you outlined) has already built this. You have successfully transformed disparate spreadsheets into a clean, consolidated dataset.
+    *   **Final Step:** Treat your final output (`Month_1_Analysis_Deliverable_Automated_V4.xlsx` and the subsequent compliance data) as the first version of this national database. Ensure it's stored in a central, accessible location to become the "single source of truth" for all future queries.
+
+#### **Layer 2: The Hidden Network (The Relational Layer)**
+
+*   **What it is:** A map of the connections (directors, parent companies) between reporting entities, specifically to identify nodes of concentrated risk.
+*   **Implementation Plan (Directly from your Month 3 task):**
+    1.  **Consolidate Associates:** Create a master table of all 15,958 associate records from both the non-lodger and single-lodger files.
+    2.  **Map Associates to ABNs:** Create a clear, two-column map: `Associate_Name/ID` and `Associated_ABN`.
+    3.  **Identify At-Risk Links:** Join this map with your "at-risk" cohorts (the 1,343 non-lodgers and the high-failure single-lodgers).
+    4.  **Count the Connections:** Perform a frequency count on `Associate_Name/ID`. Any associate linked to more than one "at-risk" ABN is a potential node of systemic risk.
+*   **Immediate Output:** While your initial finding was "no super-connectors," the *capability to produce this analysis on demand* is the implementation of Layer 2. You now have a repeatable process to monitor for network risk as new data comes in.
+
+#### **Layer 3: The National Risk Picture (The Thematic Layer)**
+
+*   **What it is:** An aggregated view of risk, looking at thematic "hotspots" like industries, entity types, and common failure points.
+*   **Implementation Plan (Directly from your Month 2 tasks and deep dives):**
+    1.  **Quantify Industry Risk:** Use your final dataset to create a ranked list of industries based on their prevalence in the non-lodger, late-submitter, and high-failure cohorts.
+    2.  **Quantify Entity-Type Risk:** Use the ASX flag to create a clear comparison of compliance behaviour between public and private entities.
+    3.  **Quantify Behavioural Risk:** Use the granular compliance data to create a definitive profile of the most common failure points (e.g., the 36.5% failure rate on "Consultation").
+*   **Immediate Output:** This layer is perfectly suited for a **Power BI Dashboard**. You can now build a "National Risk Dashboard" with interactive charts showing:
+    *   Top 10 highest-risk industries.
+    *   Compliance rates for ASX vs. Non-ASX entities.
+    *   A bar chart of failure rates for each Section 16 criterion.
+
+#### **Layer 4: Proactive Forecasting (The Predictive Layer)**
+
+*   **What it is:** Using the patterns identified in the lower layers to build an early-warning system that flags potential future non-compliance.
+*   **Implementation Plan (Using your existing findings):**
+    1.  **Define a "High-Risk Profile":** Based on your analysis, a high-risk entity can now be defined by a set of data points. For example: `Entity_Type = Private` AND `Industry = Land Development` AND `Submission_Status = Late`.
+    2.  **Build a Simple "Risk Score" Algorithm:** Create a new column in your master database called `Risk_Score`. You can start with a simple, rule-based model:
+        *   Start all entities at 0.
+        *   Add `+3` points if entity is in a top 10 high-risk industry.
+        *   Add `+2` points if entity lodged late.
+        *   Add `+1` point for each failed Section 16 criterion.
+    3.  **Create a Watchlist:** Any entity with a `Risk_Score` above a certain threshold (e.g., 5) is automatically placed on a "watchlist" for proactive engagement.
+*   **Immediate Output:** A new, prioritized list of entities for the compliance team. This moves them from reacting to failures to proactively engaging with entities that *fit the profile* of a future failure.
+
+---
+
+### **Integrating the Monash MSD2.0 Framework**
+
+The Monash framework is our external "quality" benchmark. We don't have the resources to manually re-score 7,000 statements, but we can integrate its intelligence to make our own model smarter.
+
+**How to Implement It (A "Proxy Model" Approach):**
+
+1.  **Enrich the Foundation (Layer 1):** Add the Monash letter-grade ratings for the ASX100 companies into your master database. This creates a "ground truth" sample where we know the disclosure quality.
+
+2.  **Calibrate the Predictive Model (Layer 4):** Now, test your internal `Risk_Score` against the Monash ratings for the ASX100 sample.
+    *   **Question:** Do entities with a high internal `Risk_Score` consistently receive low (D, E, F) grades from Monash?
+    *   **Action:** You will likely find a strong correlation. You can then tweak the weightings in your `Risk_Score` algorithm to make it an even more accurate predictor of the kind of quality issues Monash identifies.
+
+3.  **Inform the National Risk Picture (Layer 3):** Use the MSD2.0 categories (e.g., "Effectiveness Assessment," "Supply Chains") as the thematic structure for your Power BI dashboard. Instead of just showing a "36.5% failure rate for Criterion F," you can categorize it under the heading of "Consultation & Governance," using the language of an established best-practice framework. This adds external credibility to your internal findings.
+
+**The End Result:** You will have created an internal, data-driven "quality score" that is calibrated against an external, best-practice academic framework. This gives you a scalable and defensible way to estimate the disclosure quality and systemic risk of the entire reporting population, fulfilling the core promise of your strategic proposal.
 
 ---
 
