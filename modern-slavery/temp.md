@@ -1,167 +1,56 @@
---- Examining content of 'abn_bulk_data.jsonl' ---
+The following script will:
+Create a list of the 1,338 ABNs we need to look up.
+Efficiently read our 19.5-million-record JSONL file.
+Extract the full EntityTypeText for each of our target ABNs.
+Add this information as a new EntityType column to our potential_reporters DataFrame.
+---
+import json
+import pandas as pd
+from tqdm import tqdm
 
-🔄 Check 1: Counting total records in the file...
-✅ Found 19,565,958 total ABN records.
+# --- Configuration ---
+# This DataFrame holds our 1,338 high-priority entities
+# (Assuming 'potential_reporters' is still in memory from our previous steps)
 
-🔄 Check 2: Displaying the first 3 records for inspection...
+# --- Enrichment Process ---
+print("--- Enriching High-Priority List with Entity Type Data ---")
 
---- Record 1 ---
-{
-  "ABN": {
-    "@status": "ACT",
-    "@ABNStatusFromDate": "19991101",
-    "#text": "11000000948"
-  },
-  "EntityType": {
-    "EntityTypeInd": "PUB",
-    "EntityTypeText": "Australian Public Company"
-  },
-  "MainEntity": {
-    "NonIndividualName": {
-      "NonIndividualNameText": "QBE INSURANCE (INTERNATIONAL) LTD",
-      "@type": "MN"
-    },
-    "BusinessAddress": {
-      "AddressDetails": {
-        "State": "NSW",
-        "Postcode": "2000"
-      }
-    }
-  },
-  "ASICNumber": {
-    "@ASICNumberType": "undetermined",
-    "#text": "000000948"
-  },
-  "GST": {
-    "@status": "ACT",
-    "@GSTStatusFromDate": "20000701"
-  },
-  "OtherEntity": {
-    "NonIndividualName": {
-      "NonIndividualNameText": "QBE INSURANCE (INTERNATIONAL) LIMITED",
-      "@type": "TRD"
-    }
-  },
-  "@recordLastUpdatedDate": "20180216",
-  "@replaced": "N"
-}
+# Step 1: Get the set of ABNs we need to find for a fast lookup
+target_abns = set(potential_reporters['ABN'].astype(str))
+print(f"Prepared to look up {len(target_abns)} unique ABNs.")
 
---- Record 2 ---
-{
-  "ABN": {
-    "@status": "CAN",
-    "@ABNStatusFromDate": "20190501",
-    "#text": "11000002568"
-  },
-  "EntityType": {
-    "EntityTypeInd": "PRV",
-    "EntityTypeText": "Australian Private Company"
-  },
-  "MainEntity": {
-    "NonIndividualName": {
-      "NonIndividualNameText": "TOOHEYS PTY LIMITED",
-      "@type": "MN"
-    },
-    "BusinessAddress": {
-      "AddressDetails": {
-        "State": "NSW",
-        "Postcode": "2141"
-      }
-    }
-  },
-  "ASICNumber": {
-    "@ASICNumberType": "undetermined",
-    "#text": "000002568"
-  },
-  "GST": {
-    "@status": "CAN",
-    "@GSTStatusFromDate": "20190502"
-  },
-  "@recordLastUpdatedDate": "20190531",
-  "@replaced": "N"
-}
+# Step 2: Read the JSONL file and extract data for our target ABNs
+abn_entity_map = {}
+print("Reading the 19.5 million record ABN data file. This will take a moment...")
 
---- Record 3 ---
-{
-  "ABN": {
-    "@status": "ACT",
-    "@ABNStatusFromDate": "20000627",
-    "#text": "11000003314"
-  },
-  "EntityType": {
-    "EntityTypeInd": "PUB",
-    "EntityTypeText": "Australian Public Company"
-  },
-  "MainEntity": {
-    "NonIndividualName": {
-      "NonIndividualNameText": "NEWCASTLE GOLF CLUB LTD",
-      "@type": "MN"
-    },
-    "BusinessAddress": {
-      "AddressDetails": {
-        "State": "NSW",
-        "Postcode": "2295"
-      }
-    }
-  },
-  "ASICNumber": {
-    "@ASICNumberType": "undetermined",
-    "#text": "000003314"
-  },
-  "GST": {
-    "@status": "ACT",
-    "@GSTStatusFromDate": "20000701"
-  },
-  "OtherEntity": {
-    "NonIndividualName": {
-      "NonIndividualNameText": "NEWCASTLE GOLF CLUB LIMITED",
-      "@type": "TRD"
-    }
-  },
-  "@recordLastUpdatedDate": "20161207",
-  "@replaced": "N"
-}
+with open(FULL_JSONL_PATH, 'r') as f:
+    # tqdm gives us a nice progress bar
+    for line in tqdm(f, total=total_records, desc="Searching ABNs"):
+        # A small optimization: check if any target ABNs are left to find
+        if not target_abns:
+            break
 
-🔄 Check 3: Searching for a specific ABN: 35140106341...
-✅ Record Found! Details for ABN 35140106341:
-{
-  "ABN": {
-    "@status": "ACT",
-    "@ABNStatusFromDate": "20091020",
-    "#text": "35140106341"
-  },
-  "EntityType": {
-    "EntityTypeInd": "PRV",
-    "EntityTypeText": "Australian Private Company"
-  },
-  "MainEntity": {
-    "NonIndividualName": {
-      "NonIndividualNameText": "\"K\" Line Auto Logistics Pty Ltd",
-      "@type": "MN"
-    },
-    "BusinessAddress": {
-      "AddressDetails": {
-        "State": "VIC",
-        "Postcode": "3004"
-      }
-    }
-  },
-  "ASICNumber": {
-    "@ASICNumberType": "undetermined",
-    "#text": "140106341"
-  },
-  "GST": {
-    "@status": "ACT",
-    "@GSTStatusFromDate": "20091020"
-  },
-  "OtherEntity": {
-    "NonIndividualName": {
-      "NonIndividualNameText": "\"K\" Line Auto Logistics Pty Ltd",
-      "@type": "TRD"
-    }
-  },
-  "@recordLastUpdatedDate": "20091021",
-  "@replaced": "N"
-}
+        record = json.loads(line)
+        abn = record.get('ABN', {}).get('#text')
 
---- Examination Finished ---
+        if abn in target_abns:
+            entity_type = record.get('EntityType', {}).get('EntityTypeText', 'Unknown')
+            abn_entity_map[abn] = entity_type
+            # Remove the found ABN to speed up future searches
+            target_abns.remove(abn)
+
+print(f"\nSuccessfully found and extracted data for {len(abn_entity_map)} ABNs.")
+
+# Step 3: Add the new 'EntityType' column to our DataFrame
+# We map the dictionary values back to our DataFrame based on the ABN
+potential_reporters['EntityType'] = potential_reporters['ABN'].astype(str).map(abn_entity_map)
+
+# --- Display the Result ---
+print("\n--- Enrichment Complete ---")
+print("The 'EntityType' column has been added. First 5 rows of the enriched data:")
+display(potential_reporters[['ABN', 'Entity name', 'Industry', 'EntityType']].head())
+
+# Check for any ABNs that might not have been found (unlikely but good practice)
+missing_count = potential_reporters['EntityType'].isna().sum()
+if missing_count > 0:
+    print(f"\nWarning: Could not find entity type information for {missing_count} ABNs.")
