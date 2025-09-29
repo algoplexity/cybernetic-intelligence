@@ -1,26 +1,25 @@
-import glob
-import os
+Success! Found 20 ABN bulk data XML files:
+------------------------------
+20250924_Public01.xml
+20250924_Public02.xml
+20250924_Public03.xml
+20250924_Public04.xml
+20250924_Public05.xml
+20250924_Public06.xml
+20250924_Public07.xml
+20250924_Public08.xml
+20250924_Public09.xml
+20250924_Public10.xml
+20250924_Public11.xml
+20250924_Public12.xml
+20250924_Public13.xml
+20250924_Public14.xml
+20250924_Public15.xml
+20250924_Public16.xml
+20250924_Public17.xml
+20250924_Public18.xml
+20250924_Public19.xml
+20250924_Public20.xml
+------------------------------
 
-# --- Define the search pattern for our XML files ---
-# This pattern will find all files ending in .xml in the current directory.
-# Let's make it specific to the 'Public' files to be safe.
-search_pattern = '*Public*.xml'
-
-# --- Find all files matching the pattern ---
-xml_files = glob.glob(search_pattern)
-
-# --- Report the findings ---
-if xml_files:
-    # Sort the files for a consistent processing order
-    xml_files.sort()
-    
-    print(f"Success! Found {len(xml_files)} ABN bulk data XML files:")
-    print("-" * 30)
-    for file_name in xml_files:
-        print(file_name)
-    print("-" * 30)
-    print("\nWe will now update our main script to process all of these files in order.")
-
-else:
-    print(f"Warning: No XML files found matching the pattern '{search_pattern}'.")
-    print("Please ensure the ABN bulk extract files have been unzipped and uploaded to your Colab session.")
+We will now update our main script to process all of these files in order.
