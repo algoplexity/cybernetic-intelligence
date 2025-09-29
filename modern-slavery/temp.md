@@ -1,29 +1,62 @@
---- Deep Dive Analysis Results ---
+import os
+import pandas as pd
 
-[Analysis 1: GST Status of Financial Sector Non-Lodgers]
-GST_Status
-ACT    263
-NON     98
-CAN     14
-Name: count, dtype: int64
+# ==============================================================================
+# SCRIPT CONFIGURATION
+# ==============================================================================
+# This assumes the 'potential_reporters' DataFrame with all our enriched data
+# is still in memory. If not, the script would need to be expanded to recreate it.
 
-Insight: 'CAN' indicates a cancelled GST registration, a strong sign of a dormant or non-trading entity.
+# Define the final output path and filename
+OUTPUT_FILENAME = 'modern_slavery_act_high_priority_non_lodgers.xlsx'
+FULL_OUTPUT_PATH = os.path.join(FULL_DATA_PATH, OUTPUT_FILENAME)
 
-[Analysis 2: Age Distribution of Financial Sector Non-Lodgers (in years)]
-count    375.0
-mean      13.8
-std        7.9
-min        0.1
-25%        6.8
-50%       11.8
-75%       21.8
-max       25.9
-Name: CompanyAge, dtype: float64
+# ==============================================================================
+# MAIN REPORT GENERATION
+# ==============================================================================
 
-Insight: This tells us if these are new or long-established entities.
-/tmp/ipython-input-521476279.py:45: SettingWithCopyWarning: 
-A value is trying to be set on a copy of a slice from a DataFrame.
-Try using .loc[row_indexer,col_indexer] = value instead
+print(f"--- Generating Final Excel Report ---")
+print(f"This report will contain the {len(potential_reporters)} high-priority entities.")
 
-See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
-  financial_sector_df['CompanyAge'] = (datetime.now() - financial_sector_df['RegistrationDate']).dt.days / 365.25
+try:
+    # --- Prepare the final DataFrame for export ---
+    # We can select and reorder the columns for the best readability
+    final_columns_order = [
+        'ABN',
+        'Entity name',
+        'Trading name',
+        'EntityType',
+        'Industry',
+        'Industry division',
+        'Total income',
+        'State',
+        'Business address',
+        'Business suburb',
+        'Business postcode',
+        'GST_Status',
+        'CompanyAge',
+        'ASX listed',
+        'ACN',
+        'ABN registration date'
+    ]
+    
+    # Ensure all columns exist before trying to order them
+    # This handles any potential changes from previous steps
+    final_df_export = potential_reporters[[col for col in final_columns_order if col in potential_reporters.columns]].copy()
+    
+    # Round the 'CompanyAge' for cleaner presentation
+    if 'CompanyAge' in final_df_export.columns:
+        final_df_export['CompanyAge'] = final_df_export['CompanyAge'].round(1)
+
+    # --- Save the DataFrame to an Excel file ---
+    # The `index=False` argument prevents writing the row numbers to the file
+    final_df_export.to_excel(FULL_OUTPUT_PATH, index=False)
+
+    print(f"\n✅ SUCCESS: The final report has been generated.")
+    print(f"   You can now download the file from your Google Drive.")
+    print(f"   Location: {FULL_OUTPUT_PATH}")
+
+except Exception as e:
+    print(f"❌ ERROR: An error occurred while generating the Excel file: {e}")
+
+print("\n--- Investigation Complete ---")
