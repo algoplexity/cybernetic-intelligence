@@ -1,15 +1,38 @@
---- Enriching High-Priority List with Entity Type Data ---
-Prepared to look up 1338 unique ABNs.
-Reading the 19.5 million record ABN data file. This will take a moment...
-Searching ABNs:  99%|█████████▉| 19431950/19565958 [02:59<00:01, 108344.05it/s]
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-Successfully found and extracted data for 1338 ABNs.
+# Set the style for our plots
+sns.set_style("whitegrid")
 
---- Enrichment Complete ---
-The 'EntityType' column has been added. First 5 rows of the enriched data:
-ABN	Entity name	Industry	EntityType
-0	35140106341	"K" Line Auto Logistics Pty Ltd	Automotive Body, Paint and Interior Repair n.e.c.	Australian Private Company
-1	71604999706	1ST ENERGY PTY LTD	Electricity Distribution	Australian Private Company
-2	16634403124	20 CASHEWS PTY. LTD.	Other Information Services	Australian Private Company
-3	18062618964	4K AUTOMOTIVE GROUP PTY LTD	Residential Property Operators	Australian Private Company
-4	55096671920	5 WAYS FOODSERVICE PTY LTD	Other Grocery Wholesaling	Australian Private Company
+print("--- Final Analysis: Profiling Non-Lodgers by Entity Type ---")
+
+# --- Analysis 1: Overall Distribution of Entity Types ---
+print("\n[Analysis 1: Most Common Entity Types (All 1,338 Non-Lodgers)]")
+top_10_entity_types = potential_reporters['EntityType'].value_counts().nlargest(10)
+print(top_10_entity_types)
+
+# Plotting the overall distribution
+plt.figure(figsize=(10, 7))
+sns.barplot(y=top_10_entity_types.index, x=top_10_entity_types.values, palette="plasma")
+plt.title('Top 10 Entity Types for All Non-Lodgers', fontsize=16)
+plt.xlabel('Number of Entities', fontsize=12)
+plt.ylabel('Entity Type', fontsize=12)
+plt.show()
+
+
+# --- Analysis 2: Deep Dive into the "Financial Asset Investing" Sector ---
+print("\n[Analysis 2: Deep Dive on 'Financial Asset Investing' Sector]")
+# Filter our data for just this industry
+financial_sector_df = potential_reporters[potential_reporters['Industry'] == 'Financial Asset Investing']
+financial_entity_types = financial_sector_df['EntityType'].value_counts().nlargest(10)
+
+print(f"Breakdown of the {len(financial_sector_df)} entities in Financial Asset Investing:")
+print(financial_entity_types)
+
+# Plotting the financial sector distribution
+plt.figure(figsize=(10, 7))
+sns.barplot(y=financial_entity_types.index, x=financial_entity_types.values, palette="cividis")
+plt.title('Top Entity Types within "Financial Asset Investing"', fontsize=16)
+plt.xlabel('Number of Entities', fontsize=12)
+plt.ylabel('Entity Type', fontsize=12)
+plt.show()
