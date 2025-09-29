@@ -1,67 +1,167 @@
-import json
-import os
-from google.colab import drive
+--- Examining content of 'abn_bulk_data.jsonl' ---
 
-# ==============================================================================
-# SCRIPT CONFIGURATION
-# ==============================================================================
-# Ensure the path and filename match the output from the previous script
-DRIVE_FOLDER_NAME = 'abn_data'
-DRIVE_MOUNT_PATH = '/content/drive'
-FULL_DATA_PATH = os.path.join(DRIVE_MOUNT_PATH, 'MyDrive', DRIVE_FOLDER_NAME)
-JSONL_FILENAME = 'abn_bulk_data.jsonl'
-FULL_JSONL_PATH = os.path.join(FULL_DATA_PATH, JSONL_FILENAME)
+🔄 Check 1: Counting total records in the file...
+✅ Found 19,565,958 total ABN records.
 
-# The ABN we will use for our test lookup
-TEST_ABN_TO_FIND = '35140106341'
+🔄 Check 2: Displaying the first 3 records for inspection...
 
-# ==============================================================================
-# MAIN EXAMINATION WORKFLOW
-# ==============================================================================
+--- Record 1 ---
+{
+  "ABN": {
+    "@status": "ACT",
+    "@ABNStatusFromDate": "19991101",
+    "#text": "11000000948"
+  },
+  "EntityType": {
+    "EntityTypeInd": "PUB",
+    "EntityTypeText": "Australian Public Company"
+  },
+  "MainEntity": {
+    "NonIndividualName": {
+      "NonIndividualNameText": "QBE INSURANCE (INTERNATIONAL) LTD",
+      "@type": "MN"
+    },
+    "BusinessAddress": {
+      "AddressDetails": {
+        "State": "NSW",
+        "Postcode": "2000"
+      }
+    }
+  },
+  "ASICNumber": {
+    "@ASICNumberType": "undetermined",
+    "#text": "000000948"
+  },
+  "GST": {
+    "@status": "ACT",
+    "@GSTStatusFromDate": "20000701"
+  },
+  "OtherEntity": {
+    "NonIndividualName": {
+      "NonIndividualNameText": "QBE INSURANCE (INTERNATIONAL) LIMITED",
+      "@type": "TRD"
+    }
+  },
+  "@recordLastUpdatedDate": "20180216",
+  "@replaced": "N"
+}
 
-print(f"--- Examining content of '{JSONL_FILENAME}' ---")
+--- Record 2 ---
+{
+  "ABN": {
+    "@status": "CAN",
+    "@ABNStatusFromDate": "20190501",
+    "#text": "11000002568"
+  },
+  "EntityType": {
+    "EntityTypeInd": "PRV",
+    "EntityTypeText": "Australian Private Company"
+  },
+  "MainEntity": {
+    "NonIndividualName": {
+      "NonIndividualNameText": "TOOHEYS PTY LIMITED",
+      "@type": "MN"
+    },
+    "BusinessAddress": {
+      "AddressDetails": {
+        "State": "NSW",
+        "Postcode": "2141"
+      }
+    }
+  },
+  "ASICNumber": {
+    "@ASICNumberType": "undetermined",
+    "#text": "000002568"
+  },
+  "GST": {
+    "@status": "CAN",
+    "@GSTStatusFromDate": "20190502"
+  },
+  "@recordLastUpdatedDate": "20190531",
+  "@replaced": "N"
+}
 
-if not os.path.exists(FULL_JSONL_PATH):
-    print(f"❌ ERROR: The file '{JSONL_FILENAME}' was not found in '{FULL_DATA_PATH}'.")
-    print("      Please ensure the conversion script has been run successfully.")
-else:
-    # --- Check 1: Count Total Records ---
-    print("\n🔄 Check 1: Counting total records in the file...")
-    total_records = 0
-    with open(FULL_JSONL_PATH, 'r') as f:
-        for line in f:
-            total_records += 1
-    print(f"✅ Found {total_records:,} total ABN records.")
+--- Record 3 ---
+{
+  "ABN": {
+    "@status": "ACT",
+    "@ABNStatusFromDate": "20000627",
+    "#text": "11000003314"
+  },
+  "EntityType": {
+    "EntityTypeInd": "PUB",
+    "EntityTypeText": "Australian Public Company"
+  },
+  "MainEntity": {
+    "NonIndividualName": {
+      "NonIndividualNameText": "NEWCASTLE GOLF CLUB LTD",
+      "@type": "MN"
+    },
+    "BusinessAddress": {
+      "AddressDetails": {
+        "State": "NSW",
+        "Postcode": "2295"
+      }
+    }
+  },
+  "ASICNumber": {
+    "@ASICNumberType": "undetermined",
+    "#text": "000003314"
+  },
+  "GST": {
+    "@status": "ACT",
+    "@GSTStatusFromDate": "20000701"
+  },
+  "OtherEntity": {
+    "NonIndividualName": {
+      "NonIndividualNameText": "NEWCASTLE GOLF CLUB LIMITED",
+      "@type": "TRD"
+    }
+  },
+  "@recordLastUpdatedDate": "20161207",
+  "@replaced": "N"
+}
 
-    # --- Check 2: Inspect First 3 Records ---
-    print("\n🔄 Check 2: Displaying the first 3 records for inspection...")
-    records_to_show = 3
-    with open(FULL_JSONL_PATH, 'r') as f:
-        for i, line in enumerate(f):
-            if i >= records_to_show:
-                break
-            print(f"\n--- Record {i+1} ---")
-            record = json.loads(line)
-            # Pretty-print the JSON object
-            print(json.dumps(record, indent=2))
-    
-    # --- Check 3: Perform a Test Lookup ---
-    print(f"\n🔄 Check 3: Searching for a specific ABN: {TEST_ABN_TO_FIND}...")
-    found_record = None
-    with open(FULL_JSONL_PATH, 'r') as f:
-        for line in f:
-            # Check if the ABN is in the line before parsing the full JSON (faster)
-            if f'"{TEST_ABN_TO_FIND}"' in line:
-                record = json.loads(line)
-                # Ensure it's the right field, not just a random number
-                if record.get('ABN', {}).get('#text') == TEST_ABN_TO_FIND:
-                    found_record = record
-                    break # Stop searching once found
-    
-    if found_record:
-        print(f"✅ Record Found! Details for ABN {TEST_ABN_TO_FIND}:")
-        print(json.dumps(found_record, indent=2))
-    else:
-        print(f"❌ Record for ABN {TEST_ABN_TO_FIND} was not found in the dataset.")
+🔄 Check 3: Searching for a specific ABN: 35140106341...
+✅ Record Found! Details for ABN 35140106341:
+{
+  "ABN": {
+    "@status": "ACT",
+    "@ABNStatusFromDate": "20091020",
+    "#text": "35140106341"
+  },
+  "EntityType": {
+    "EntityTypeInd": "PRV",
+    "EntityTypeText": "Australian Private Company"
+  },
+  "MainEntity": {
+    "NonIndividualName": {
+      "NonIndividualNameText": "\"K\" Line Auto Logistics Pty Ltd",
+      "@type": "MN"
+    },
+    "BusinessAddress": {
+      "AddressDetails": {
+        "State": "VIC",
+        "Postcode": "3004"
+      }
+    }
+  },
+  "ASICNumber": {
+    "@ASICNumberType": "undetermined",
+    "#text": "140106341"
+  },
+  "GST": {
+    "@status": "ACT",
+    "@GSTStatusFromDate": "20091020"
+  },
+  "OtherEntity": {
+    "NonIndividualName": {
+      "NonIndividualNameText": "\"K\" Line Auto Logistics Pty Ltd",
+      "@type": "TRD"
+    }
+  },
+  "@recordLastUpdatedDate": "20091021",
+  "@replaced": "N"
+}
 
-print("\n--- Examination Finished ---")
+--- Examination Finished ---
