@@ -1,4 +1,52 @@
 
+The data cleaning process will produce a **Clean Data Mart** consisting of two key components:
+
+1.  **The Master Entity File (Denormalized):** Our primary tool for high-level analysis and flagging.
+2.  **Cleaned Relational Tables (Normalized):** Our resource for deep-dive investigations into flagged entities.
+
+---
+
+### **Refined Work Plan: Creating a Clean Data Mart**
+
+This updated approach ensures no information is discarded. Instead, it is cleaned, structured, and made available for different stages of the investigative process.
+
+#### **Component 1: The Master Entity File (Denormalized, Analytical)**
+
+This remains the core output for the initial analysis, but its role is now more clearly defined.
+
+*   **Purpose:** To provide a single, high-level view of every potential reporting entity. Optimized for fast filtering, aggregation, and identifying non-lodgers at scale.
+*   **Structure:** **One unique row per entity (ABN).**
+*   **How "One-to-Many" Data is Handled (Aggregation, not Discarding):**
+    *   **Statements:** The multiple statements submitted by one entity are not lost. They are *summarized* into new analytical features in the Master Entity File, such as:
+        *   `num_statements_submitted`
+        *   `first_submission_date`
+        *   `last_submission_date`
+        *   `last_period_end_date`
+        *   `is_repeat_non_compliant` (a boolean flag derived from multiple submissions)
+    *   **Associates:** Director/associate information is **not** flattened into this file. Doing so would be impractical and lose clarity. Instead, we can add a simple summary flag like `has_associate_data` (True/False) to indicate that deeper information is available for that entity.
+
+#### **Component 2: The Cleaned Relational Tables (Normalized, Investigative)**
+
+This is the crucial addition to the work plan that addresses your concern. We will clean the detailed transactional and relational files and keep them in their normalized structure, ready for lookups.
+
+*   **Purpose:** To allow for detailed, surgical investigation of entities flagged by the Master Entity File. When you ask, "Why did this specific ASX100 company fail to report?", these files provide the context.
+*   **Structure:** Multiple tables linked by the ABN.
+*   **Output Files:**
+    1.  `clean_statements.csv`: A cleaned version of the `Statements` tab from the register data. It contains **one row per statement submitted**, linked by ABN. An analyst can immediately see the full submission history for any given ABN.
+    2.  `clean_associates.csv`: A cleaned and consolidated file of all associate/director information from both `ato_tax_transparency_non_lodger.xlsx` and `lodge_once_cont.xlsx`. It contains **one row per associate**, linked by ABN. This allows for powerful network analysis and risk assessment based on key management personnel.
+
+### **The Integrated Workflow in Practice:**
+
+This two-part data structure creates a highly efficient workflow:
+
+1.  **High-Level Analysis:** You query the **Master Entity File**.
+    *   *Example:* "Show me all entities with `Total Income` > $100M, `has_ever_reported` = False."
+    *   This gives you a clean, high-confidence list of potential high-risk non-lodgers in seconds.
+
+2.  **Deep-Dive Investigation:** You take the ABNs from that list and use them to query the **Cleaned Relational Tables**.
+    *   *Example:* For a flagged ABN, you look it up in `clean_associates.csv` and find it shares a director with three other companies that have a history of non-compliance. This immediately elevates the risk profile and informs your engagement strategy.
+
+---
 The goal is to consolidate the information from these four disparate sources into a single, reliable **Master Entity File**. This file will serve as our source of truth, containing one unique row per entity (identified by its ABN) and summarizing its reporting status and key attributes.
 
 ---
@@ -51,3 +99,4 @@ The objective is to produce a clean, documented, and ready-to-use master file fo
 | **P3-C** | **Output and Validation** | 1.  Generate the final `Master Entity File` as a clean CSV or Excel file. <br> 2.  Provide a summary report detailing the cleaning process, including the number of records processed from each source, the number of ABNs successfully matched, and a list of any data quality issues that require further manual review. |
 
 Upon completion of this work plan, we will possess a single, high-integrity **Master Entity File**. This foundational asset will be pivotal for efficiently and accurately identifying entities that have failed to lodge their modern slavery statements, forming the basis for all subsequent analysis and compliance actions.
+---
