@@ -45,6 +45,13 @@ This is the core data engineering phase. Its goal is to transform all raw data i
         3.  Join this linking table back to the statement data to associate each ABN with the `Status` and `Period end date` of all its submissions.
         4.  Aggregate this data to determine the *highest* compliance status achieved for each unique ABN for each reporting year.
     *   **Output:** `annual_reporting_log.csv` (one unique row per ABN).
+*   **1D: Build the Universe of Governance.**
+    *   **Source Files:** `ato_tax_transparency_non_lodger.xlsx`, `lodge_once_cont.xlsx`.
+    *   **Logic:**
+        1.  Extract the `Associates` tabs from both the original `ato_tax_transparency_non_lodger` and `lodge_once_cont` files. These tabs contain the director and associate information for a large number of entities in our ecosystem.
+        2.  Combine these two lists into a single, comprehensive table.
+        3.  Clean and standardize the data, creating a `FullName` field for each person to allow for reliable matching.
+    *   **Output:** **`clean_associates.csv`** (one row per associate per ABN).
 
 **Phase 2: Build the Master Behavioural File**
 The goal of this phase is to integrate our three clean universes into a single, authoritative master file.
