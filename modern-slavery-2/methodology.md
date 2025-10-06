@@ -83,9 +83,45 @@ This is the final, lightweight phase.
 
 This definitive methodology guarantees the integrity, accuracy, and traceability of our findings. By separating the build process into the creation of three distinct, de-duplicated universes before final integration, and by explicitly detailing the role of every single data source, we have a clear and defensible blueprint for our project.
 
+
 ---
 
-### **Appendix A: Foundational Datasets and Evidence Trail (Corrected)**
+### **Appendix A: Data Inventory and Evidence Trail**
+
+This appendix provides a comprehensive inventory of all data assets used and created during this project. It is divided into two sections: the raw source files we ingest, and the clean, foundational assets we produce and reuse. This structure provides a complete and transparent evidence trail for our methodology.
+
+#### **1. Raw Source File Inventory**
+
+This table lists every external and internal raw data source used in this project, its provider, its filename, and its specific role in our methodology.
+
+| Data Source | Provider | Source Filename(s) | Role in Project |
+| :--- | :--- | :--- | :--- |
+| **ABN Bulk Extract** | ABR | `abn_bulk_data.jsonl` | **Primary Input for Identity.** Forms the core of the "Universe of Identity" by providing ABNs, ACNs, and legal entity names. |
+| **ASIC Business Names Register** | ASIC | `BUSINESS_NAMES_202510.csv` | **Enhances Identity.** Adds millions of trading names to the "Universe of Identity" to improve entity matching. |
+| **Corporate Tax Transparency Reports** | ATO | `YYYY-YY-corporate-report-of-entity-tax-information.xlsx` (6 files) | **Primary Input for Obligation.** Forms the core of the "Universe of Obligation" with its definitive list of high-revenue corporate entities. |
+| **ACNC Charity Register** | ACNC | `acnc-registered-charities.csv` | **Expands Obligation.** Adds 'Large' charities to the "Universe of Obligation." |
+| **ASIC Company Register** | ASIC | `COMPANY_202509.csv` | **Verification & Enrichment.** Used to verify the 'private' vs. 'public' status of entities for the Universe of Obligation, and to enrich the final analysis with company status. |
+| **Modern Slavery Statements Register** | Internal | `All time data from Register.xlsx` | **Primary Input for Action.** The source for all reporting behaviours (`Published`, `Draft`, `Redraft`), forming the basis of the "Universe of Action." |
+| **Historical Associate Data 1** | ATO | `ato_tax_transparency_non_lodger.xlsx` | **Primary Input for Governance.** The `Associates` tab is a key source for building our `clean_associates.csv` file. |
+| **Historical Associate Data 2** | Internal | `lodge_once_cont.xlsx` | **Primary Input for Governance.** The `associates` tab provides additional director information for the `clean_associates.csv` file. |
+| **ASIC Banned Persons Register** | ASIC | `bd_per_202509.csv` | **Enrichment for Governance Risk.** The definitive list of disqualified directors, used to create our highest-level governance risk flag. |
+| **Taxation Statistics** | ATO | `tsYY<entity>XX_public.xlsx` (multiple files) | **Contextual Analysis.** Aggregated, anonymised data used to quantify the "private company blind spot" for the final report. |
+
+#### **2. Foundational Asset Inventory (Intermediate Files)**
+
+This table details the clean, verified, and reusable foundational assets that are **created** during Phase 1 of our methodology. These assets are the direct inputs for all subsequent analysis.
+
+| Foundational Asset (Intermediate File) | Purpose & Role in Methodology | Key Intelligence Contained |
+| :--- | :--- | :--- |
+| **`abn_name_lookup.csv`** | **The Universe of Identity.** Our master "phonebook" that links all known business names to a verified ABN. It is used to repair and verify entities in all other datasets. | `ABN`, `Name`, `CleanName` |
+| **`obligated_entities.csv`** | **The Universe of Obligation.** A definitive, de-duplicated list of all entities with a confirmed legal obligation to report in any given year. | `ABN`, and boolean flags for each year of obligation (e.g., `2018-19`, `2019-20`). |
+| **`annual_reporting_log.csv`** | **The Universe of Action.** The complete evidence trail of every action (Published, Draft, Redraft) taken by every entity for every reporting year. | `ABN`, and the highest status for each year (e.g., `Action_2020`, `Action_2021`). |
+| **`clean_associates.csv`** | **The Universe of Governance.** A consolidated and cleaned list of all known directors and other officeholders. It is the crucial link for governance risk profiling. | `ABN`, `FullName` (of the associate), `Relationship_Code`. |
+
+This two-part inventory now provides a complete and unambiguous picture of our entire data pipeline, from raw source to clean foundational asset, with the role of every single file clearly defined.
+
+---
+### **Appendix A: Foundational Datasets and Evidence Trail (old)**
 
 This appendix details the foundational data assets that were built and integrated to produce the final analytical outcomes of this report. Our methodology was designed to ensure that every finding is traceable back to an authoritative data source and a specific source file.
 
