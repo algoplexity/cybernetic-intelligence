@@ -1,3 +1,64 @@
+
+
+---
+
+### **White Paper: A Definitive Strategy for Analysing Modern Slavery Act Compliance Behaviour**
+
+**Purpose**
+
+This document outlines the definitive strategy for the analytical phase of our Modern Slavery Act compliance project. It builds upon the successful completion of our data engineering phase, which produced a verified and integrated foundational dataset.
+
+The objective of this next phase is to move beyond simple compliance rates to a deep, nuanced understanding of corporate reporting behaviour. The strategy is designed to deliver clear, evidence-based and actionable intelligence to the Regulator by profiling and comparing distinct cohorts of reporting entities.
+
+**1. Our analytical framework: the four categories of compliance behaviour**
+
+Our entire analysis will be oriented around a clear and precise classification framework. For each year that an entity has a legal obligation to report, we will classify its behaviour into one of four distinct categories.
+
+This four-part classification is the fundamental unit of our analysis.
+
+| Classification | Definition | Implication |
+| :--- | :--- | :--- |
+| **1. Compliant (Published)** | The entity successfully fulfilled its legal obligation by publishing a statement. | Compliant. |
+| **2. Attempted (Redraft)** | The entity acknowledged its obligation and submitted a statement, but failed to meet the required standard and was asked to revise. | Non-compliant. |
+| **3. Initiated (Draft)** | The entity began the reporting process but failed to complete its legal obligation to publish a statement. | Non-compliant. |
+| **4. Ignored (No Action)** | The entity had a confirmed legal obligation but took no visible action in the Register to comply. | Non-compliant. |
+
+**2. Our methodology: a three-phase analytical work plan**
+
+We will execute our analysis in three distinct and sequential phases.
+
+**Phase 1: Build the Master Behavioural File**
+The goal of this phase is to create our ultimate foundational dataset: a "behavioural dossier" for every relevant entity.
+
+*   **Action:** We will apply our four-category classification logic to our existing Master Compliance File. This will create a new status column for every single reporting year (for example, `Status_2020`, `Status_2021`, etc.).
+*   **Outcome:** A final, authoritative **`master_behavioural_file.parquet`**. This file will contain the complete, year-by-year compliance journey for every entity in our analysis.
+
+**Phase 2: A deep-dive profile of the "Newly Visible Segment"**
+Our first analytical step will be to apply this new lens to our key cohort of interest: Australian-owned private companies with revenues between $100 million and $200 million.
+
+*   **Action:** We will filter the `master_behavioural_file` to isolate this "Newly Visible Segment."
+*   **Analysis:** We will generate a detailed breakdown showing the percentage of this cohort that falls into each of the four behavioural categories for their first year of obligation (2022–23).
+*   **Insight:** This will provide a complete and nuanced picture of the initial compliance behaviour of this critical group, answering the question: "When faced with a clear obligation, how did this segment behave?"
+
+**Phase 3: A comprehensive, multi-faceted comparative analysis**
+This is the final and most powerful part of our analysis. We will benchmark the behaviour of our "Newly Visible Segment" against three other key cohorts, comparing the full distribution across all four behavioural categories.
+
+The three benchmark "slices" for comparison are:
+1.  **Direct Peers:** Public and foreign-owned companies in the same revenue bracket ($100M-$200M) for the same year.
+2.  **Overall Corporate Benchmark:** All other obligated company types, regardless of revenue, for the same year.
+3.  **Historical Benchmark:** The original cohort of all entities that first became obligated in 2019.
+
+This multi-faceted comparison will allow us to answer crucial strategic questions. For example: "Are private companies more likely to *ignore* the Act than their public peers, or are they just more likely to get *stuck in the draft phase*?"
+
+**3. The final output: actionable intelligence for the Regulator**
+
+This strategy will deliver a level of insight that goes far beyond a simple list of non-compliers. It will provide the Regulator with a detailed, evidence-based understanding of *how* and *why* different segments of the economy are failing to comply.
+
+The final report will be built on clear, verifiable data and will include visualisations (such as stacked bar charts) to clearly illustrate the different behavioural patterns between cohorts.
+
+This will enable the development of a sophisticated and perfectly tailored engagement strategy, ensuring that the right resources are deployed to address the right problem—whether it be a lack of awareness, a lack of capability, or a deliberate disregard for the law. This is the foundation for a truly intelligence-led approach to compliance.
+
+---
 The Correct Path Forward: A Four-Part Segmentation
 Your suggestion is perfect. We will replace the simplistic compliance rate calculation with a full, four-part segmentation of the "Newly Visible Segment." This will give us a complete picture of their compliance behaviour, not just their compliance outcome.
 Our revised Phase 1 analysis will now be:
