@@ -1,3 +1,30 @@
+
+---
+
+### **The Definitive Story of the Project (Final Version)**
+
+#### **Phase 1: Forging the Four Universes**
+
+Our story began by transforming eight chaotic data sources into four foundational pillars of truth. We built our **Universe of Identity**, a "Rosetta Stone" to link names to ABNs. We created the **Universe of Obligation**, our definitive list of the **11,435** entities who *should have* reported. We forged the enriched **Universe of Action**, a two-fold record of both the actions taken and their compliance quality. Finally, we mapped the web of human influence in our **Universe of Governance**.
+
+#### **Phase 2: The Great Integration**
+
+In this pivotal phase, we wove together our universes of **Obligation** and **Action**. We created the engine of our project: the **Master Behavioural File**. This single, authoritative file contains one row for each of the **14,427** entities in the reporting ecosystem, detailing their nuanced, year-by-year compliance journey.
+
+#### **Phase 3: The Profile of a Non-Lodger**
+
+With our master file built, we turned to the most compelling question: who are the entities that ignore their obligations? We isolated the **11,434** entities whose most recent behaviour was "Ignored" and began the final, successful enrichment.
+
+*   **Our Quest:** To paint a detailed, multi-faceted picture of the typical non-lodger by adding three critical layers of intelligence.
+
+*   **The Breakthroughs:**
+    *   After a painstaking diagnostic process, we successfully attached financial data to **5,309** non-lodging entities, confirming that while a "blind spot" exists, a significant portion of the cohort is visible in public tax data.
+    *   We seamlessly enriched **7,698** of them with their current ASIC corporate status, allowing us to distinguish between active and defunct companies.
+    *   Finally, in the most critical step, we cross-referenced their directors with a list of **3,413** banned individuals. This produced a powerful, actionable result: we identified **14 non-lodging companies with a direct link to a banned director**, creating a high-priority, high-risk group for further scrutiny.
+
+*   **Our Output:** We produced our final data asset for analysis: the **`enriched_non_lodger_profile.csv`**. This file tells a powerful, data-driven story through the financial, corporate, and governance risk factors we successfully attached.
+
+**Epilogue:** The data is now complete, correct, and fully enriched. The character of the "non-lodger" is in sharp focus. All that remains is **Phase 4**, the final, lightweight step of reporting and visualization, where we will present these hard-won findings.
 ---
 
 ### **The Definitive Story of the Project (Final Version)**
