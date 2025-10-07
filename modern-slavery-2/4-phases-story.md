@@ -2,6 +2,36 @@
 
 ---
 
+### **The Story of Phase 1 (Updated): Forging the Four Universes**
+
+Before we could understand the landscape of Modern Slavery compliance, we first had to build our world. Our raw material was a chaotic collection of **eight different data sources**—government reports, spreadsheets, and massive data dumps. Our mission, guided by a strict methodology, was to transform this chaos into four clean, perfect, and foundational "universes" of truth. This is the story of how we did it.
+
+#### **Chapter 1: The Rosetta Stone (Phase 1A - Universe of Identity)**
+
+Our story began with a fundamental problem: a single entity can have many names. Without a way to connect them, our analysis would be impossible. We took two massive, raw files—the **`abn_bulk_data.jsonl`** and **`BUSINESS_NAMES_202510.csv`**—and from their 12 million messy entries, we forged our first asset: **`abn_name_lookup.csv`**. This clean file, our **Universe of Identity**, became the "Rosetta Stone" that would link everything to a single, unique ABN.
+
+#### **Chapter 2: The Line in the Sand (Phase 1B - Universe of Obligation)**
+
+With our Rosetta Stone in hand, we asked a critical question: who, by law, *should* be reporting? We took the **ATO Corporate Tax Transparency reports**, the **ACNC Charity Register**, and the **ASIC Company Register** and applied a strict, evidence-based logic. We drew a clear line in the sand, producing our second universe: **`obligated_entities.csv`**. This file contains the **11,435** unique ABNs of every entity we could prove had a legal obligation to report.
+
+#### **Chapter 3 (Revised): The Two-Fold Truth (Phase 1C - Universe of Action)**
+
+Knowing who *should* have acted, we now needed to discover what actions were actually taken. We turned to our internal export of the Modern Slavery Register, **`All time data from Register.xlsx`**. This is where the story took a dramatic turn.
+
+*   **Our Quest:** Our initial goal was simple: log every action (`Published`, `Draft`, `Redraft`) for every entity. But a critical insight stopped us: is a statement that is merely **published** the same as one that is truly **compliant** with the Act? The answer was a resounding no. Our quest became two-fold: we needed to capture not just the *action* taken, but the *quality* of that action.
+
+*   **The Process:** After a grueling diagnostic process to correct a catastrophic column misalignment in the source file, we re-engineered our approach. We extracted not only the `'Status'` of each submission but also the crucial `'Compliant'` flag buried deep within the file at column index 40. We used our **Universe of Identity** to repair thousands of missing ABNs and then implemented a more sophisticated aggregation. For each entity in each year, we didn't just find their highest action; we preserved the vital compliance flag associated *with* that action.
+
+*   **Our Output:** We produced our third, and now much richer, universe: **`annual_reporting_log.csv`**. This file, our **Universe of Action**, contains **13,614** records. Each one tells a two-fold truth: not just what an entity did, but whether that action met the bar of compliance.
+
+#### **Chapter 4: The Web of Influence (Phase 1D - Universe of Governance)**
+
+Our final task was to map the web of human influence behind these entities. We took two special-purpose files, **`ato_tax_transparency_non_lodger.xlsx`** and **`lodge_once_cont.xlsx`**, and after a careful inspection, extracted the 'Associates' tabs from within. By cleaning and standardizing this information, we created a single list of all directors and officeholders. Our fourth universe, **`clean_associates.csv`**, contains **9,877** records, each linking a person to a company, ready to power our risk analysis.
+
+**Epilogue:** The four foundational universes are now built. The chaos of the raw data has been conquered, and our understanding of the truth has been deepened. From this solid, enriched ground, the true story of compliance can now be told.
+
+---
+
 ### **The Story of Phase 1: Forging the Four Universes**
 
 Before we could understand the landscape of Modern Slavery compliance, we first had to build our world. Our raw material was a chaotic collection of **eight different data sources**—government reports, spreadsheets, and massive data dumps. Our mission, guided by a strict methodology, was to transform this chaos into four clean, perfect, and foundational "universes" of truth. This is the story of how we did it.
