@@ -1,3 +1,36 @@
+---
+
+### **The Story of the Project (Updated)**
+
+This is the updated story of our project, now including the successful completion of Phase 2.
+
+#### **Phase 1: Forging the Four Universes**
+
+Before we could understand the landscape of Modern Slavery compliance, we first had to build our world from a chaotic collection of **eight different data sources**.
+
+First, we built our **Universe of Identity** (`abn_name_lookup.csv`), a "Rosetta Stone" to link any business name to a unique ABN.
+
+Next, we drew a line in the sand, using ATO and ACNC data to create the **Universe of Obligation** (`obligated_entities.csv`), our definitive list of the **11,435** entities who *should* have reported.
+
+Then, after a grueling diagnostic process, we transformed a flawed spreadsheet into the enriched **Universe of Action** (`annual_reporting_log.csv`). This file became a two-fold record of truth, capturing not just the *action* taken by an entity, but also the crucial *quality* of that action—whether it was truly compliant.
+
+Finally, we mapped the web of human influence by extracting director data into our **Universe of Governance** (`clean_associates.csv`).
+
+With these four foundational universes built and validated, the stage was set.
+
+#### **Phase 2: The Great Integration (The Master Behavioural File)**
+
+Phase 2 was the pivotal moment of integration. It was here that we took the two most important threads of our story—**Obligation** (who should act) and **Action** (who did act)—and wove them together.
+
+*   **Our Input:** We took the **Universe of Obligation** (11,434 ABNs) and the enriched **Universe of Action** (5,534 ABNs).
+
+*   **Our Quest:** To create a single, authoritative file where every entity relevant to the Modern Slavery Act had its own unique row, detailing its behaviour year by year.
+
+*   **The Process:** We created a master list of all **14,427** unique ABNs that appeared in either universe. We then joined this master list with our log of actions. For each year, we applied a sophisticated five-part logic, looking at both the action taken and its compliance quality to assign a definitive status: `1. Compliant`, `2. Published (Non-Compliant)`, `3. Attempted`, `4. Initiated`, or `5. Ignored`.
+
+*   **Our Output:** After a rigorous process of coding, validating, and correcting a structural bug, we forged the engine of our project: the **`master_behavioural_file.parquet`**. This clean, lean file, our **Master Behavioural File**, now stands ready. Each row tells the story of a single entity's compliance journey over time.
+
+**Epilogue:** The integration is complete. The foundational data has been transformed into analytical intelligence. We are now ready to add the final layers of context in Phase 3.
 
 
 ---
