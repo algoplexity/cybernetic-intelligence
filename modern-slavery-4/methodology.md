@@ -1,6 +1,44 @@
 
 ---
 
+### **The Upgraded Methodology (v3) for `ModernSlaveryProject4`**
+
+Our master methodology remains effective, but we will now insert a new, formal **"Phase 0"** to address your requirements before any data transformation begins.
+
+#### **Phase 0: Definitive Data Universe & Value Assessment**
+
+**Purpose:** To establish a complete and verified set of raw inputs, assess the value and quality of every potential data point, and select a single "source of truth" for any overlapping information.
+
+**Step 0A: Establish the Definitive Data Universe (The "Packing List")**
+*   **Action:** Create the `ModernSlaveryProject4` directory.
+*   **Action:** Based on our verified inventory from the `Project3` audit, copy all **mandatory raw inputs** into the new folder. This now explicitly includes:
+    1.  `abn_bulk_data.jsonl`
+    2.  `BUSINESS_NAMES_202510.csv`
+    3.  `COMPANY_202509.csv`
+    4.  `acnc-registered-charities.csv`
+    5.  `bd_per_202509.csv`
+    6.  `ato_tax_transparency_non_lodger.xlsx`
+    7.  `lodge_once_cont.xlsx`
+    8.  `All time data from Register.xlsx`
+    9.  **`all-statement-information_2025-10-09.csv` (the new snapshot)**
+    10. The `CorporateTaxTransparency/` subfolder.
+*   **Outcome:** A clean, complete, and reproducible starting point for `ModernSlaveryProject4`.
+
+**Step 0B: Comparative Blueprinting of "Action" Sources (The "Source Showdown")**
+*   **The Challenge:** We now have two potential sources for the "Universe of Action": the familiar Excel file and the new CSV snapshot. They may contain overlapping or conflicting information. We must choose **one definitive source of truth** before proceeding.
+*   **Action:** We will use a new, dedicated "Comparative Inspector" script. This script will:
+    1.  Load the first few rows of both the `.xlsx` and `.csv` files.
+    2.  Produce a side-by-side report showing the column names, data types, and a raw data sample from each.
+    3.  Provide a summary of record counts for both files.
+*   **Outcome:** An evidence-based blueprint that will allow us to make a definitive decision: Which file is more complete, more reliable, and better structured to serve as the single source for our `action_log.csv`?
+
+**Step 0C: Holistic Column Value Assessment (The "Executive Filter")**
+*   **The Goal:** As you stated, to assess the impact of every potential column on executive decision-making and avoid clutter.
+*   **Action:** Following the "Source Showdown," we will review the chosen source's blueprint and our previous forensic review of all other input files. We will create a definitive "Extraction Plan" that lists every column we intend to bring into our foundational assets, along with a clear justification for its value in profiling entities for targeted compliance actions.
+*   **Outcome:** A final, approved list of high-value columns that will form the schema for our upgraded foundational assets (`entity_profiles_v2`, `action_log_v2`, etc.).
+
+---
+
 ### **The Definitive Methodology (v2) for ModernSlaveryProject4**
 
 This methodology incorporates your three critical refinements: a forensic data review, a strategic column assessment, and a clear focus on actionable intelligence.
