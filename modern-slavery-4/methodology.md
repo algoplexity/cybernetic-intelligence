@@ -1,4 +1,56 @@
 
+
+---
+
+### **The Definitive Methodology (v5) for `ModernSlaveryProject4`**
+
+This is a refined, two-stage approach to building our foundational assets.
+
+#### **Stage 1: Establish the Known Universe of Entities and Obligations**
+
+This stage will be our sole focus initially. We will not touch the "Action" data sources yet.
+
+*   **Step 1.1: Build the Universe of Identity (`entity_profiles_v2.parquet`)**
+    *   **Action:** We will execute an upgraded **Script 1 (v2)**.
+    *   **Inputs:** `abn_bulk_data.jsonl`, `BUSINESS_NAMES_202510.csv`.
+    *   **Logic:** This script will now perform the **complete extraction** we previously defined, including `RecordLastUpdatedDate`, `DGR_Status_From_Date`, `EntityType_Code`, and will produce the separate `active_business_names.parquet` with registration dates.
+    *   **Output:** A forensically complete and enriched Universe of Identity.
+
+*   **Step 1.2: Build the Universe of Obligation (`obligation_log_v2.csv`)**
+    *   **Action:** We will execute an upgraded **Script 2 (v8)**.
+    *   **Inputs:** All ATO Tax Transparency files, `acnc-registered-charities.csv`.
+    *   **Logic:**
+        1.  The core ATO processing logic will remain the same (our battle-hardened v7 ground-truth script).
+        2.  **New Logic:** The script will now also process the `acnc-registered-charities.csv` file. It will filter for all charities and create a log entry for each, tagging them with their `Charity_Size` ('Large', 'Medium', 'Small').
+        3.  It will then concatenate the corporate obligations (from ATO) and the non-profit entities (from ACNC) into a single, comprehensive log.
+    *   **Output:** A single, unified `obligation_log_v2.csv` that contains all corporate entities with a presumed legal obligation AND all registered charities, classified by size.
+
+**Outcome of Stage 1:** We will have a definitive, master list of every entity we care about and their presumed status (obligated, large charity, medium charity, etc.). This is our "golden list."
+
+---
+
+#### **Stage 2: Build the Universe of Action by Validating Against the Known Universe**
+
+Now, armed with our "golden list" of entities, we can tackle the messy "Action" data sources with surgical precision.
+
+*   **Step 2.1: The Definitive "Action Data" Sanitizer and Exception Generator**
+    *   **Action:** We will create a new, powerful **Script 3 (v3)**.
+    *   **Inputs:**
+        1.  `All time data from Register.xlsx`
+        2.  `all-statement-information_2025-10-09.csv`
+        3.  Our newly created "golden list" of ABNs from Stage 1.
+    *   **Definitive Logic:** This script's primary purpose is **validation and exception handling**. It will process **both** the Excel and CSV action files, row by row, and perform a series of rigorous quality checks:
+        1.  **Identifier Integrity:** Does the row contain a valid, identifiable ABN? Does this ABN exist in our "Universe of Identity"? If not, it's a **problematic row**.
+        2.  **Data Consistency:** For a given Statement ID, do the ABN, Reporting Period, and Entity Name match between the Excel and CSV files? If there are discrepancies, it's a **problematic row**.
+        3.  **Logical Contradictions:** As in our old script, does a single ABN have multiple, conflicting statuses (`Published` and `Draft`) for the same reporting year within a single source file? If so, it's a **problematic row**.
+        4.  **Orphaned Actions:** Is there an action record for an ABN that does not appear in our comprehensive `obligation_log_v2.csv` or `entity_profiles_v2.parquet`? (This could be a typo in the ABN or a genuinely new entity). This is flagged for review.
+    *   **The Outputs:** This script will produce two critical files:
+        1.  **`action_log_clean_candidates.csv`:** A file containing all the rows from both sources that passed every single quality check. This is our high-confidence data.
+        2.  **`action_log_exceptions_for_review.csv`:** A single, comprehensive file containing **every single row that failed any of the checks above**. Each row will be tagged with a clear `Exception_Reason` (e.g., 'ABN_Mismatch_between_Sources', 'Invalid_ABN', 'Contradictory_Status').
+
+**Outcome of Stage 2:** We will have perfectly separated the signal from the noise. The business stakeholders will receive a single, actionable exception file for human intervention, while the data team can proceed with the clean, validated candidates to build the final `action_log_v2.csv`.
+
+This is a far superior methodology. It is more robust, more disciplined, and directly addresses your core requirement to isolate problematic data for human review before any final assets are created. This is the definitive plan for `ModernSlaveryProject4`.
 ---
 
 ### **The Upgraded Methodology (v3) for `ModernSlaveryProject4`**
