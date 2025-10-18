@@ -66,6 +66,40 @@ Our rigorous, step-by-step process of **Inspect -> Build -> Validate -> Quaranti
 
 **The final, definitive deliverable of this project is not a clean action log. It is the `action_log_exceptions_final.csv` file.** This file, containing all 34,749 flawed records, is the most valuable output. It is the evidence-based, actionable intelligence that must be presented to the stakeholders.
 
+---
+################################################################################
+  DEFINITIVE FORENSIC ANALYSIS: 'Missing_Critical_Data' Exceptions
+################################################################################
+
+--- [1] Analyzing 8,473 Records Quarantined for 'Missing_Critical_Data' ---
+
+  -> Breakdown by 'Status':
+        Record Count
+Status              
+NaN             8473
+
+  [VERDICT] Your hypothesis appears incorrect. 'Draft' is not the dominant status.
+
+
+--- [2] Diagnosing the Root Cause of Missing Data ---
+
+  -> Breakdown of Nulls in Critical Columns:
+        Missing Field  Count Percentage
+  Missing_StatementID      0       0.0%
+Missing_ReportingYear   8473     100.0%
+       Missing_Status   8473     100.0%
+
+
+--- [3] Sample Record from this Cohort ---
+      StatementID PeriodStart   PeriodEnd   Type HeadquarteredCountries AnnualRevenue                 ReportingEntities IncludedEntities          ABN  ACN ARBN                                                 Link        IndustrySectors                RelatedStatements Reporting entities Status ReportingYear_excel Compliant Publishable Reporting obligations      ABN_csv ABN_excel    ABN_final       Exception_Reason  ReportingYear
+26276      2020-1  2019-04-01  2020-03-30  Joint              Australia      100-150M  Qinetiq Pty Ltd (68 125 805 647)              NaN  68125805647  NaN  NaN  https://modernslaveryregister.gov.au/statements/12/  Defence and aerospace  2023-1895, 2022-1668, 2021-2766                NaN    NaN                 NaN       NaN         NaN                   NaN  68125805647       NaN  68125805647  Missing_Critical_Data            NaN
+
+
+================================================================================
+  EXCEPTION ANALYSIS COMPLETE.
+================================================================================
+
+
 **Your final report to the stakeholders should be:**
 "We have successfully built a definitive map of all entities and their likely obligations. However, our forensic analysis has revealed that the source data for tracking their *actions* is not fit for purpose. We present a comprehensive exception report detailing over 34,000 records that require manual review and data remediation before any meaningful compliance analysis can proceed."
 
