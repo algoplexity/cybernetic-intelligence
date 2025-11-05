@@ -7,40 +7,34 @@ This document is your practical, step-by-step guide to running, maintaining, and
 ### **1. Your First Task (Do This Today)**
 This task validates your environment and shows you the final output in minutes.
 
-1.  **Sync the SharePoint Folder:** Ensure "Compliance Analyst Co-Pilot" is synced to your machine.
-2.  **Create Your Workspace:** Copy the `1_Source_Code/` folder and rename it `1_Source_Code_MyDevBranch/`. You will only work in this personal copy.
-3.  **Run the Final Validation:** Open a terminal, navigate into your personal code folder, and run:
-    `python 5_validate_model.ipynb`
-4.  **Watch it work.** The script loads the pre-built assets and runs two example queries.
-5.  **Challenge it:** Open the notebook, change the query text in the final cell, and re-run it.
+1.  **Sync the SharePoint Folders:** Ensure `Code/`, `Models/`, and `Data/` are synced.
+2.  **Open the Master Notebook:** Open `Code/master_pipeline.ipynb`.
+3.  **Run All Cells:** From the menu, select "Runtime" -> "Run all". This will execute a scaled-down version of the entire pipeline.
+4.  **Watch it work.** It will download data, process it, build a graph, train a model, and show you the final query results.
 
 ### **2. How to Refresh All Data (Next Quarter)**
-This process rebuilds the knowledge graph and retrains the model with the latest data. Expect it to run for several hours.
+This process rebuilds the knowledge graph and retrains the model with the latest data from the register. Expect it to run for several hours.
 
-1.  **Get New Data:** Download the latest `all-statement-information...csv` to the `3_Data_And_Reports/Input/` subfolder.
-2.  **Create a New Workspace:** Make a fresh copy of `1_Source_Code/`.
-3.  **Run the Master Pipeline:** Open your terminal, navigate to your new workspace, and run the five notebooks **in order**, one after the other.
-4.  **Promote New Assets:** When complete, manually copy the final trained model (`gfm_retriever_final.pth`) from your run's output folder to the main `2_Model_Assets/` folder. Archive the old one.
+1.  **Get New Data:** Download the latest `all-statement-information...csv` to the `Data/Input/` subfolder.
+2.  **Open the Master Notebook:** Open a personal copy of `Code/master_pipeline.ipynb`.
+3.  **Adjust for Full Scale:**
+    *   In the **second code cell** (Stage 1), change `SAMPLE_SIZE = 25` to `SAMPLE_SIZE = -1`.
+    *   In the **fifth code cell** (Stage 4), increase `NUM_EPOCHS` (e.g., to 50) and `TOTAL_TRIPLETS` (e.g., to 200000) for a more thorough training run.
+4.  **Run All Cells.** The script is resumable. If it times out, you can re-run the training cell to pick up where it left off.
+5.  **Promote New Assets:** When complete, manually copy the final trained model (`gfm_retriever_final.pth`) from `Models/gfm_retriever_v1/` to a permanent, versioned folder.
 
 ### **3. How to Improve the System (Your Job Now)**
-This is how you make the system smarter. Always work within your personal code folder.
+This is how you make the system smarter. Always work within your personal copy of the master notebook.
 
 | Want to... | Do This |
 | :--- | :--- |
-| **Improve the Evidence Filter?** (`Classifier`) | 1. Use `prospect_for_annotation.py` (not in the master pipeline) to find new sentence candidates. <br> 2. Manually label the output file for "operational evidence." <br> 3. Use `train_operational_classifier.py` to create a `Classifier v3`. |
-| **Improve Entity Extraction?** (`NER`) | 1. Create a new, focused annotation dataset. <br> 2. Run `train_ner.py` to create `NER v3`. |
-| **Improve the Ranking Brain?** (`GNN`) | 1. Open `4_train_model_resumable.ipynb`. <br> 2. Adjust training parameters (e.g., `NUM_EPOCHS`, `TOTAL_TRIPLETS_TO_GENERATE`). <br> 3. Re-run to create a new GNN model. |
+| **Improve the Evidence Filter?** (`Classifier`) | 1. **Run a Prospecting Notebook** (e.g., a copy of `prospect_for_annotation.py`) to find new sentence candidates from the latest data. <br> 2. **Manually label** the output `.jsonl` file for "operational evidence." <br> 3. **Run a Training Notebook** (e.g., `train_operational_classifier.py`) to create a `Classifier v3`. <br> 4. Update the `CLASSIFIER_PATH` in the master notebook to point to your new `v3` model and test its impact. |
+| **Improve Entity Extraction?** (`NER`) | 1. **Create a new annotation dataset** focused on the entities you want to improve (e.g., more examples of specific `CONTROL` types). <br> 2. **Run a Training Notebook** (e.g., `train_ner.py`) to create `NER v3`. <br> 3. Update the `NER_PATH` in the master notebook. |
 
 ### **4. Emergency Button (If It Breaks)**
-Use this if you've made changes to your personal code copy and it stops working.
-
-1.  **Delete your personal code folder** (e.g., `1_Source_Code_MyDevBranch/`).
-2.  **Make a fresh copy** of the original `1_Source_Code/` master folder.
+Use this if your personal copy of the master notebook is broken.
+1.  **Delete it.**
+2.  **Make a fresh copy** of the original `Code/master_pipeline.ipynb`.
 3.  **Start again.** This is fast and safe; it will not delete your large data or model assets.
 
 ---
-
-
-
-*(This is the new artifact that captures our journey and strategic vision.)*
-
