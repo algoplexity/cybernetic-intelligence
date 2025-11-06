@@ -30,5 +30,4 @@ This task will build all necessary assets and validate that the system works end
 3.  Run all cells. **This will take many hours.** The script will save checkpoints, so if it times out, you can re-run the training cell to resume.
 4.  **After training is complete,** you can safely delete the large `training_checkpoints/` and `optimizer.pt` files to save space.
 
-This is the final, definitive plan. It is simple, correct, and provides a truly lean and effective handover package.
 ---
