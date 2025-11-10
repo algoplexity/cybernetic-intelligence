@@ -197,3 +197,38 @@ We introduce the **Coherence Meter** — a theoretically grounded, empirically v
 
 Let’s ship this.
 ---
+@article{mak-thesis-2024,
+  author  = {Mak, [Your Name]},
+  title   = {Discovering Hidden Structures in Financial Markets via Elementary Cellular Automata},
+  year    = {2024},
+  note    = {Master's Thesis, [Institution]}
+}
+
+@article{zenil2010,
+  author  = {Zenil, Hector and others},
+  title   = {Methods for Compressed Sensing and Cellular Automata},
+  journal = {Complex Systems},
+  year    = {2010}
+}
+
+@inproceedings{ieoc-2023,
+  author    = {[Authors]},
+  title     = {Intelligence at the Edge of Chaos: Transfer from Cellular Automata},
+  booktitle = {Proc. UAI},
+  year      = {2023}
+}
+
+@article{williams2024,
+  author  = {Williams, [First Name]},
+  title   = {QCEA-T: Quantifying Coherence in Emergent Automata Transitions},
+  journal = {[Journal]},
+  year    = {2024}
+}
+
+@article{tsf-survey-2023,
+  author  = {[Authors]},
+  title   = {Time Series Foundation Models: Challenges and Opportunities},
+  journal = {arXiv preprint},
+  year    = {2023}
+}
+---
